@@ -1,0 +1,1 @@
+import{_ as s}from"./BtDlCxDN.js";import{_ as a,o as c,c as t,a as e,b as _,x as r}from"./DjjsNm_4.js";const d={},l={class:"warn",role:"note"},p={class:"warn-icon"};function i(o,m){const n=s;return c(),t("div",l,[e("span",p,[_(n,{name:"alert"})]),e("p",null,[r(o.$slots,"default",{},void 0)])])}const x=a(d,[["render",i],["__scopeId","data-v-45c25ddb"]]);export{x as _};

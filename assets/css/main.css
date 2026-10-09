@@ -1,0 +1,101 @@
+/* FireTech kurumsal dil: Fire Academy sunumundaki renkler, dar ve kalın başlık fontu, ince altın çizgiler. */
+@import '@fontsource/roboto-condensed/600.css';
+@import '@fontsource/roboto-condensed/700.css';
+@import '@fontsource/roboto-condensed/800.css';
+@import '@fontsource/roboto/400.css';
+@import '@fontsource/roboto/500.css';
+@import '@fontsource/roboto/700.css';
+
+:root {
+  --navy: #0c2840;
+  --navy-2: #163a5c;
+  --gold: #9c7020;
+  --gold-2: #b8913f;
+  --gold-line: #cdb27a;
+  --red: #921616;
+  --ink: #3a3a3a;
+  --muted: #6f6f6f;
+  --paper: #faf8f4;
+  --card: #ffffff;
+  --border: #e6dcc6;
+  --font-head: 'Roboto Condensed', 'Arial Narrow', sans-serif;
+  --font-body: 'Roboto', system-ui, sans-serif;
+  --wrap: 1200px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+}
+img, svg { max-width: 100%; display: block; }
+a { color: inherit; }
+h1, h2, h3, h4 {
+  margin: 0;
+  font-family: var(--font-head);
+  color: var(--navy);
+  line-height: 1.05;
+  letter-spacing: .2px;
+}
+h1, h2 { font-weight: 800; text-transform: uppercase; }
+h1 { font-size: clamp(38px, 6vw, 68px); }
+h2 { font-size: clamp(30px, 4vw, 46px); }
+h3 { font-size: 22px; font-weight: 700; }
+p { margin: 0; }
+.gold { color: var(--gold); }
+.red { color: var(--red); }
+
+.wrap { width: 100%; max-width: var(--wrap); margin: 0 auto; padding: 0 16px; }
+@media (min-width: 768px) { .wrap { padding: 0 32px; } }
+.section { padding: 72px 0; }
+.section.paper { background: var(--paper); }
+.lead { font-size: 19px; font-weight: 500; color: var(--ink); max-width: 640px; }
+.muted { color: var(--muted); }
+
+/* Butonlar */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 48px; padding: 0 24px;
+  border: 2px solid var(--navy); border-radius: 4px;
+  background: var(--navy); color: #fff;
+  font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
+  text-decoration: none; cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn:hover { background: var(--navy-2); border-color: var(--navy-2); }
+.btn.gold-btn { background: var(--gold); border-color: var(--gold); }
+.btn.gold-btn:hover { background: #87601a; border-color: #87601a; }
+.btn.ghost { background: transparent; color: var(--navy); }
+.btn.ghost:hover { background: var(--navy); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:focus-visible, a:focus-visible, button:focus-visible { outline: 3px solid var(--gold-2); outline-offset: 2px; }
+
+/* Kart */
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+/* Lacivert numara dairesi */
+.num {
+  display: inline-grid; place-items: center; flex: none;
+  width: 34px; height: 34px; border-radius: 50%;
+  background: var(--navy); color: #fff;
+  font-family: var(--font-head); font-weight: 700; font-size: 17px;
+}
+.num.gold-num { background: var(--gold); }
+
+/* Lacivert yuvarlak ikon rozeti */
+.badge-icon {
+  display: grid; place-items: center; flex: none;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--navy); color: #fff;
+}
+.badge-icon svg { width: 26px; height: 26px; }

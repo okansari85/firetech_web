@@ -1,0 +1,8 @@
+# cPanel › Git Version Control › "Deploy HEAD Commit": derlenmiş site (deploy/) ygurehberi.com yayın klasörüne kopyalanır.
+# Alan adı başka bir klasördeyse DEPLOYPATH'i cPanel › Domains'teki "Document Root" ile değiştirin.
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/public_html/
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R deploy/. $DEPLOYPATH

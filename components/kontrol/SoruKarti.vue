@@ -26,6 +26,12 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
     </div>
     <p v-if="soru.aciklama" class="aciklama">{{ soru.aciklama }}</p>
 
+    <!-- Tanım (ör. Ticaret: alan bilinmiyorsa m² istenmeden önce) -->
+    <div v-if="soru.tanim" class="tanim">
+      <p>“{{ soru.tanim.metin }}”</p>
+      <p v-if="soru.tanim.ornek"><strong>Örnek:</strong> {{ soru.tanim.ornek }}</p>
+    </div>
+
     <div v-if="soru.liste" class="liste">
       <strong>{{ soru.liste.baslik }}</strong>
       <ul><li v-for="o in soru.liste.ornekler" :key="o">{{ o }}</li></ul>
@@ -87,6 +93,9 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .yardim-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; background: #fff; padding: 7px 14px; font-family: var(--font-head); font-weight: 700; font-size: 14px; color: var(--gold); cursor: pointer; }
 .yardim-btn svg { width: 16px; height: 16px; }
 .aciklama { margin-top: 10px; color: var(--muted); }
+.tanim { margin-top: 16px; padding: 16px 18px; background: var(--paper); border-left: 3px solid var(--vurgu); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; font-size: 15.5px; color: var(--ink); }
+.tanim p { margin: 0; }
+.tanim strong { font-family: var(--font-head); color: var(--navy); }
 .liste { margin-top: 16px; padding: 14px 18px; background: var(--paper); border-left: 3px solid var(--gold); border-radius: 6px; }
 .liste strong { font-family: var(--font-head); color: var(--navy); }
 .liste ul { margin: 8px 0 0; padding-left: 18px; font-size: 14.5px; }

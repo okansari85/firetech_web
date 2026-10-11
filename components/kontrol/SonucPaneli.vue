@@ -5,7 +5,7 @@ import { METIN, SINIFLAR } from '~/data/onDegerlendirme'
 import type { Sonuc, KullanimSonucu, Cevaplar } from '~/utils/onDegerlendirmeMotoru'
 
 const props = defineProps<{ sonuc: Sonuc; c: Cevaplar }>()
-const emit = defineEmits<{ duzenle: []; yeni: [] }>()
+const emit = defineEmits<{ duzenle: []; duzenleSoru: [id: string]; yeni: [] }>()
 
 const sonKontrol = ref('')
 const sonraki = computed(() => {
@@ -21,6 +21,16 @@ const periyotHucre = (k: KullanimSonucu) => ({
 }[k.durum])
 const uygulanan = (k: KullanimSonucu) => props.sonuc.nihai !== null && k.periyot === props.sonuc.nihai && k.durum === 'gecerli'
 const belirsizler = computed(() => props.sonuc.kullanimlar.filter(k => ['belirlenemedi', 'inceleme'].includes(k.durum)))
+// Belirlenemeyen periyot için doğrudan ilgili soruya dönen düğmeler (spesifikasyonlardaki "Yapı İnşaat Alanını Düzenle" vb.).
+const DUZENLE_ETIKETI: [RegExp, string][] = [
+  [/^alan/, 'Yapı İnşaat Alanını Düzenle'], [/^oda$/, 'Oda Sayısını Düzenle'], [/^yukseklik$/, 'Yapı Yüksekliğini Düzenle'],
+  [/Tehlike$/, 'Tehlike Sınıfını Düzenle'], [/depoMadde$/, 'Tehlikeli Madde Bilgisini Düzenle'], [/toplanmaTuru$/, 'Toplanma Türünü Düzenle'],
+  [/toplanma(Alani|Oturma|Ayakta)$/, 'Toplanma Alanını Düzenle'], [/yh(Iliski|Mod)$/, 'Faaliyet Bilgisini Düzenle'], [/^digerler$/, 'Diğer Kullanımları Düzenle']
+]
+const duzenleDugmeleri = computed(() => {
+  const ids = [...new Set(belirsizler.value.map(k => k.soru).filter((x): x is string => !!x))]
+  return ids.map(id => ({ id, etiket: DUZENLE_ETIKETI.find(([r]) => r.test(id))?.[1] ?? 'Bilgiyi Düzenle' }))
+})
 const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.c.blokAdi}` : ''))
 </script>
 
@@ -42,6 +52,9 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
           <li v-for="k in belirsizler" :key="k.anahtar"><strong>{{ k.sinif ? SINIFLAR[k.sinif].kisa : k.ad }}:</strong> {{ k.belirleyici }}</li>
           <li v-if="!belirsizler.length">Periyodik kontrol süresinin belirlenebilmesi için gerekli bilgi eksik.</li>
         </ul>
+        <div v-if="duzenleDugmeleri.length" class="duzenle">
+          <button v-for="b in duzenleDugmeleri" :key="b.id" type="button" class="btn" @click="emit('duzenleSoru', b.id)">{{ b.etiket }}</button>
+        </div>
         <p v-if="blok" class="blok">{{ blok }}</p>
       </div>
       <div v-if="sonuc.genel === 'tabi'" class="periyot">
@@ -109,6 +122,7 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
 .b-baslik { font-family: var(--font-head); font-size: 13px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--gold); }
 .belirleyen ul { margin: 4px 0 0; padding-left: 18px; font-size: 15px; }
 .eksikler { margin: 10px 0 0; padding-left: 20px; }
+.duzenle { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .blok { margin-top: 8px; font-size: 14px; color: var(--muted); }
 .periyot { display: flex; flex-direction: column; align-items: center; padding: 18px 28px; border-radius: 10px; background: var(--navy); color: #fff; }
 .periyot small { font-family: var(--font-head); font-weight: 700; letter-spacing: .8px; color: #c9d3de; }

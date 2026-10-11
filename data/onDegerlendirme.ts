@@ -48,6 +48,8 @@ export const ODA: Secenek[] = [
   { deger: 'gt_25', etiket: '25’in üstünde' },
   { deger: 'bilmiyorum', etiket: 'Bilmiyorum / Emin değilim' }
 ]
+// Yurtta oda kavramı belirsizse (koğuş): yatak / kişi sayısı oda sayısına çevrilmez, doğrulama gerekir (Konaklama spesifikasyonu §4).
+export const ODA_BELIRSIZ: Secenek = { deger: 'belirsiz', etiket: 'Koğuş düzeni / oda sayısı belirsiz', aciklama: 'Yatak veya kişi sayısı oda sayısına çevrilmez; oda sayısı doğrulanmalıdır.' }
 export const TEHLIKE: Secenek[] = [
   { deger: 'yuksek', etiket: 'Yüksek Tehlikeli' },
   { deger: 'orta', etiket: 'Orta Tehlikeli' },
@@ -55,6 +57,7 @@ export const TEHLIKE: Secenek[] = [
   { deger: 'bilmiyorum', etiket: 'Bilmiyorum / Emin değilim' }
 ]
 export const EVET_HAYIR: Secenek[] = [{ deger: 'evet', etiket: 'Evet' }, { deger: 'hayir', etiket: 'Hayır' }]
+export const PROJEDEN: Secenek[] = [{ deger: 'evet', etiket: 'Evet' }, { deger: 'hayir', etiket: 'Hayır', aciklama: 'Projeye ulaşamıyorum, projede bulamıyorum veya projem yok.' }]
 
 // ── Sınıfa özel seçenekler ────────────────────────────────────────────────────
 export const KONUT_TURU: Secenek[] = [
@@ -74,6 +77,21 @@ export const KURUMSAL_TURU: Secenek[] = [
   { deger: 'saglik', etiket: 'Sağlık Hizmeti Amaçlı Bina', ornek: 'Hastane, klinik, sağlık ocağı, dispanser, huzurevi, tıbbi laboratuvar' },
   { deger: 'ceza', etiket: 'Tutukevi / Cezaevi / Islahevi', ornek: 'Ceza ve tutukevleri, nezarethaneler, ıslahevleri' },
   { deger: 'muayenehane', etiket: 'Doktor / Diş Hekimi Muayenehanesi', aciklama: 'BYKHY’de Büro Binaları kapsamında değerlendirilir.' }
+]
+// Ticaret: BYKHY Md. 13/1'de sayılan yerler (kullanıcı, 10 Ekim: yalnız 1. fıkra). Periyodu değiştirmez; ücretli analiz filtresi için.
+export const TICARET_TURU: Secenek[] = [
+  { deger: 'magaza', etiket: 'Mağaza' },
+  { deger: 'dukkan', etiket: 'Dükkân' },
+  { deger: 'market', etiket: 'Market' },
+  { deger: 'supermarket', etiket: 'Süpermarket' },
+  { deger: 'toptanci', etiket: 'Toptancı Sitesi' },
+  { deger: 'hal', etiket: 'Sebze, Meyve ve Balık Hali' },
+  { deger: 'et_borsasi', etiket: 'Et Borsası' },
+  { deger: 'kapali_carsi', etiket: 'Kapalı Çarşı' },
+  { deger: 'pasaj', etiket: 'Pasaj' },
+  { deger: 'tamirhane', etiket: 'Tamirhane' },
+  { deger: 'yedek_parca', etiket: 'Yedek Parça ve Malzeme Satış Yeri' },
+  { deger: 'benzeri', etiket: 'Benzeri Yerler', aciklama: 'Gıda, giyim, sağlık ve diğer ihtiyaç maddelerinin toptan veya perakende satıldığı diğer yerler.' }
 ]
 export const YERLESIM: Secenek[] = [
   { deger: 'tek', etiket: 'Tek bina' },
@@ -153,6 +171,86 @@ export const ILISKI: Secenek[] = [
   { deger: 'ayri', etiket: 'Aynı site / yerleşkede, ayrı bir yapıda', aciklama: 'Kendi yapısı olarak ayrıca değerlendirilir.', ornek: 'Sitedeki ayrı market binası · kampüsteki ayrı spor salonu' }
 ]
 
+// Ana kullanım → "Yardımcı / ortak alan" olabilecek diğer kullanımlar (kullanıcı onayı, 10 Ekim; ayrıntı ve gerekçeler
+// firetech/docs/akislar/YARDIMCI_ALAN_TABLOSU.md). Listede olmayanlarda bu seçenek çıkmaz (yalnız aynı yapıda bağımsız / ayrı yapı).
+// Dayanaklar: BYKHY Md. 12/2 büro bölümleri, 13/2 satışla bağlantılı bölümler, 15/2 50 kişiden az toplanma, 16/2 50 m²'den küçük depo.
+export const YARDIMCI_OLABILIR: Partial<Record<SinifKod, SinifKod[]>> = {
+  ticaret: ['buro', 'depolama', 'toplanma'],
+  konut: ['buro', 'ticaret', 'toplanma', 'depolama'], // ticaret: yalnız site / bina sakinlerine satış noktası; dışarıya açık dükkân bağımsız
+  konaklama: ['buro', 'ticaret', 'toplanma', 'depolama', 'endustri'], // endüstri: otelin kendi çamaşırhanesi
+  kurumsal: ['buro', 'ticaret', 'toplanma', 'depolama', 'endustri'], // endüstri: hastanenin çamaşırhanesi / sterilizasyonu
+  buro: ['ticaret', 'toplanma', 'depolama'],
+  endustri: ['buro', 'ticaret', 'toplanma', 'depolama', 'kurumsal'], // kurumsal: çalışanlara revir
+  toplanma: ['buro', 'ticaret', 'depolama'],
+  depolama: ['buro', 'toplanma', 'endustri'], // endüstri: paketleme bölümü
+  yuksek: ['buro', 'ticaret', 'toplanma', 'depolama'] // ticaret: istasyon marketi istasyonun parçası (kullanıcı kararı)
+}
+// Ana kullanıma göre ilişki seçeneklerinin açıklama / örnekleri (yoksa ILISKI'deki genel metin).
+export const ILISKI_METNI: Partial<Record<SinifKod, Record<string, { aciklama?: string; ornek?: string }>>> = {
+  ticaret: {
+    yardimci: { aciklama: 'Yalnızca bu ticari kullanıma hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Marketin kendi deposu · mağazanın kendi ofisi · personel yemekhanesi' },
+    ayni: { ornek: 'Dükkânların üst katlarındaki konutlar · pasajda dışarıya açık restoran' },
+    ayri: { ornek: 'Aynı parseldeki ayrı depo binası · çarşıdaki ayrı bir yapı' }
+  },
+  konut: {
+    yardimci: { aciklama: 'Yalnızca bina veya site sakinlerine hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Sitenin havuzu, mescidi · sosyal tesisteki satış noktası · yönetim ofisi · sakinlerin otoparkı' },
+    ayni: { ornek: 'Apartmanın zemin katındaki dükkân · binada dışarıya açık ofis' },
+    ayri: { ornek: 'Sitedeki ayrı market binası · ayrı sosyal tesis binası' }
+  },
+  konaklama: {
+    yardimci: { aciklama: 'Yalnızca tesisin misafirlerine hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Otelin kendi restoranı · misafirlere hediyelik eşya dükkânı · otelin kendi çamaşırhanesi' },
+    ayni: { ornek: 'Otelde dışarıya açık işletilen restoran · otel binasındaki bağımsız mağaza' },
+    ayri: { ornek: 'Tatil köyündeki ayrı spor salonu binası · ayrı personel lojmanı' }
+  },
+  kurumsal: {
+    yardimci: { aciklama: 'Yalnızca kurumun kullanıcılarına hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Okul yemekhanesi, spor salonu · hastane içi büfe · arşiv, idari bölüm, hastanenin çamaşırhanesi' },
+    ayni: { ornek: 'Hastane binasında dışarıya açık eczane veya kafe · okul binasındaki bağımsız kurs' },
+    ayri: { ornek: 'Kampüsteki ayrı spor salonu · ayrı yurt binası' }
+  },
+  buro: {
+    yardimci: { aciklama: 'Yalnızca bu binanın çalışanlarına hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Personel yemekhanesi, toplantı salonu · çalışanlara büfe · arşiv, bina otoparkı' },
+    ayni: { ornek: 'Plazanın zemin katındaki dışarıya açık dükkânlar · binadaki restoran' },
+    ayri: { ornek: 'Aynı parseldeki ayrı otopark binası' }
+  },
+  endustri: {
+    yardimci: { aciklama: 'Yalnızca bu tesise ve çalışanlarına hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'İdari bölüm · personel yemekhanesi · hammadde / ürün deposu · çalışanlara revir' },
+    ayni: { ornek: 'Fabrika binasında dışarıya açık satış mağazası · işçi yatakhanesi' },
+    ayri: { ornek: 'Aynı parseldeki ayrı depo veya idari bina' }
+  },
+  toplanma: {
+    yardimci: { aciklama: 'Yalnızca bu tesisin ziyaretçilerine hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Sinema büfesi · idari ofis · sahne deposu, ziyaretçi otoparkı' },
+    ayni: { ornek: 'Aynı binada dışarıya açık mağaza veya ofis' },
+    ayri: { ornek: 'Stadyum alanındaki ayrı bir yapı' }
+  },
+  depolama: {
+    yardimci: { aciklama: 'Yalnızca bu depoya ve çalışanlarına hizmet ediyor; dışarıya ayrıca açık değil.', ornek: 'Depo ofisi · personel yemekhanesi · paketleme bölümü' },
+    ayni: { ornek: 'Depo binasında satış yapılan bölüm · binadaki bağımsız ofis' },
+    ayri: { ornek: 'Aynı parseldeki ayrı ofis binası' }
+  },
+  yuksek: {
+    yardimci: { aciklama: 'Tesisin işletmesinin parçası; ayrı bir işletme olarak çalışmıyor.', ornek: 'İstasyon marketi · istasyonun idari bölümü · personel yemekhanesi · tehlikeli madde içermeyen malzeme deposu' },
+    ayni: { ornek: 'Ayrı işletilen, dışarıya açık restoran' },
+    ayri: { ornek: 'Aynı parseldeki ayrı bir yapı' }
+  }
+}
+
+// "Başka kullanım var mı?" sorusu: sınıf dokümanlarındaki ifadeler (soru · "hayır" seçeneği).
+export const DIGER_VAR_METNI: Record<SinifKod, { soru: string; hayir: string }> = {
+  konut: { soru: 'Bu yapıda konut dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca konut olarak kullanılıyor' },
+  konaklama: { soru: 'Bu yapıda konaklama dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca konaklama amacıyla kullanılıyor' },
+  kurumsal: { soru: 'Bu yapıda kurumsal kullanım dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca kurumsal amaçla kullanılıyor' },
+  buro: { soru: 'Bu yapıda büro dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca büro olarak kullanılıyor' },
+  ticaret: { soru: 'Bu yapıda ticari kullanım dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca ticari amaçla kullanılıyor' },
+  endustri: { soru: 'Bu yapıda endüstriyel kullanım dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca endüstriyel amaçla kullanılıyor' },
+  toplanma: { soru: 'Bu yapıda toplanma amaçlı kullanım dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca toplanma amacıyla kullanılıyor' },
+  depolama: { soru: 'Bu yapıda depolama dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca depolama amacıyla kullanılıyor' },
+  yuksek: { soru: 'Bu tesiste tehlikeli madde faaliyeti dışında başka bir kullanım bulunuyor mu?', hayir: 'Hayır, yalnızca bu faaliyet için kullanılıyor' }
+}
+
+// Ana kullanım olarak seçildiğinde "başka kullanım" adımı olmayan sınıflar: karma kullanım hesaplanmaz, sonuç yalnız kendi periyodu.
+// Toplanma: müşteri Ekran 7 §9 "bu sürümde karma kullanım hesaplanmayacak" (kullanıcı kararı, 10 Ekim). Diğer kullanım olarak eklenen toplanma etkilenmez.
+export const KARMA_YOK: SinifKod[] = ['toplanma']
+
 // ── Yardım pencereleri ────────────────────────────────────────────────────────
 export const YARDIM = {
   yukseklik: {
@@ -179,6 +277,12 @@ export const YARDIM = {
       'Kampinglerde bungalow, çadır, karavan / motokaravan yeri ve benzeri konaklama birimleri birlikte sayılır.'
     ]
   }
+}
+
+// Ticaret: alan sorusunda "Bilmiyorum / Emin değilim" seçilince gösterilen tanım; ardından m² sorulur (müşteri, 10 Ekim).
+export const ALAN_TANIM = {
+  metin: 'Yapı inşaat alanı, yalnızca işletmenizin veya bağımsız bölümünüzün kullandığı alan değildir. Değerlendirilen yapının bütün katlarını kapsayan yapı inşaat alanıdır. Varsa ruhsat, yapı kullanma izin belgesi veya onaylı projedeki yapı inşaat alanı bilgisini esas alın.',
+  ornek: '10.000 m² yapı inşaat alanına sahip bir yapı içindeki 150 m² dükkân için periyot hesabında 150 m² değil, yapının toplam yapı inşaat alanı dikkate alınır.'
 }
 
 // ── Sonuç metinleri ───────────────────────────────────────────────────────────

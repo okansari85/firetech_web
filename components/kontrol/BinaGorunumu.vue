@@ -14,7 +14,7 @@ const periyotYazi = (k: KullanimSonucu) => k.durum === 'gecerli' ? `${k.periyot}
 const cizim = computed(() => {
   const y = props.c.yukseklik
   const n = y === 'lt_30_50' ? 5 : y === '30_50_51_50' ? 11 : y === 'ge_51_50' ? 15 : 7
-  const w = props.c.alan === 'gt_1000' ? 196 : props.c.alan === 'le_1000' ? 150 : 172
+  const w = alanBandi.value === 'gt_1000' ? 196 : alanBandi.value === 'le_1000' ? 150 : 172
   const x0 = 200 - w / 2 - 20
   const katH = Math.min(30, 290 / n)
   const ust = ZEMIN - n * katH
@@ -38,7 +38,10 @@ const cizim = computed(() => {
 })
 
 const yukseklikYazi = computed(() => YUKSEKLIK.find(s => s.deger === props.c.yukseklik)?.etiket)
-const alanYazi = computed(() => ALAN.find(s => s.deger === props.c.alan)?.etiket)
+// Alan bilinmeyip m² girildiyse (Ticaret) girilen değer gösterilir.
+const m2 = computed(() => (props.c.alan === 'bilmiyorum' && typeof props.c.alanM2 === 'number' ? props.c.alanM2 : null))
+const alanBandi = computed(() => (m2.value === null ? props.c.alan : m2.value <= 1000 ? 'le_1000' : 'gt_1000'))
+const alanYazi = computed(() => (m2.value !== null ? `${m2.value.toLocaleString('tr-TR')} m²` : ALAN.find(s => s.deger === props.c.alan)?.etiket))
 const yardimcilar = computed(() => props.sonuc.kullanimlar.filter(k => k.iliski === 'yardimci' || k.durum === 'ana_parcasi'))
 const anlik = computed(() => {
   const s = props.sonuc

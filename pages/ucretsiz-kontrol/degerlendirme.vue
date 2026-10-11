@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Ücretsiz ön değerlendirme: solda sırayla sorular (motor belirler), sağda canlı bina görünümü; sonunda sonuç.
 // Backend'siz çalışır; kurallar utils/onDegerlendirmeMotoru.ts, metinler data/onDegerlendirme.ts.
-import { SINIFLAR } from '~/data/onDegerlendirme'
+import { SINIFLAR, KARMA_YOK } from '~/data/onDegerlendirme'
 import { cevapEtiketi, type Eylem } from '~/utils/onDegerlendirmeMotoru'
 
 useSeoMeta({ title: 'Ücretsiz Ön Değerlendirme', description: 'Binanızın periyodik yangın kontrol süresini birkaç soruda öğrenin.' })
@@ -12,8 +12,9 @@ const soruAlani = ref<HTMLElement | null>(null)
 
 onMounted(() => { if (!d.value.esas) navigateTo('/ucretsiz-kontrol/kullanim-sinifi') })
 
-const adim = computed(() => (tamam.value ? 3 : mevcut.value?.grup === 'diger' ? 2 : 1))
-const adimlar = ['Kullanım sınıfı', 'Yapı bilgileri', 'Diğer kullanımlar', 'Sonuç']
+// Karma kullanım hesaplanmayan ana kullanımda (toplanma) "Diğer kullanımlar" adımı gösterilmez.
+const adimlar = computed(() => (d.value.esas && KARMA_YOK.includes(d.value.esas) ? ['Kullanım sınıfı', 'Yapı bilgileri', 'Sonuç'] : ['Kullanım sınıfı', 'Yapı bilgileri', 'Diğer kullanımlar', 'Sonuç']))
+const adim = computed(() => (tamam.value ? adimlar.value.length - 1 : mevcut.value?.grup === 'diger' ? 2 : 1))
 
 const kaydir = () => nextTick(() => {
   if (import.meta.client && window.innerWidth < 1100) soruAlani.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -23,6 +24,8 @@ const eylem = (e: Eylem) => {
   if (e.tip === 'sinif-sec') { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') } else { od.eylem(e); kaydir() }
 }
 const geri = () => { if (!od.geri()) navigateTo('/ucretsiz-kontrol/kullanim-sinifi') }
+// Sonuçtaki "… Düzenle" düğmesi: o soru ve sonrasındaki cevaplar silinir, akış o sorudan devam eder.
+const soruyaDon = (id: string) => { od.degistir(id); kaydir() }
 const yeni = () => { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') }
 </script>
 
@@ -45,7 +48,7 @@ const yeni = () => { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi
         <div ref="soruAlani" class="sol">
           <ClientOnly>
             <template v-if="tamam">
-              <KontrolSonucPaneli :sonuc="sonuc" :c="d.c" @duzenle="geri" @yeni="yeni" />
+              <KontrolSonucPaneli :sonuc="sonuc" :c="d.c" @duzenle="geri" @duzenle-soru="soruyaDon" @yeni="yeni" />
             </template>
             <template v-else-if="mevcut">
               <KontrolSoruKarti :key="mevcut.id" :soru="mevcut" :deger="d.c[mevcut.id]" @cevap="cevap" @eylem="eylem" />

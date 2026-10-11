@@ -3,8 +3,8 @@
 // hesapla(): kullanımların ve yapının periyodunu hesaplar (cevaplar eksikken de anlık çalışır).
 import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
-  KURUMSAL_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI,
-  METIN, type SinifKod, type Secenek
+  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
+  DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
 
 export type Cevaplar = Record<string, any>
@@ -21,6 +21,7 @@ export type Soru = {
   secenekler?: Secenek[]
   liste?: { baslik: string; ornekler: string[] }
   yardim?: 'yukseklik' | 'alan' | 'oda'
+  tanim?: { metin: string; ornek?: string }
   birim?: string
   bilinmiyorDugmesi?: boolean
   istegeBagli?: boolean
@@ -33,6 +34,34 @@ const DUR = Symbol('dur')
 const kisa = (s: SinifKod) => SINIFLAR[s].kisa
 const kucuk = (s: string) => s.toLocaleLowerCase('tr')
 const doluMu = (v: any) => v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0)
+// Tek seçimde cevap seçeneklerden biri olmalı: seçenekler daralınca eski cevap yeniden sorulur.
+const cevapliMi = (q: Soru, v: any) => q.tip === 'bilgi' ? false : q.tip === 'metin' ? v !== undefined : doluMu(v) && (q.tip !== 'secim' || !q.secenekler || q.secenekler.some(o => o.deger === v))
+
+// Değerlendirilen yer birden fazla yapıdan oluşabiliyor mu (konutta site, kurumsalda kampüs / yerleşke; konaklamada tatil köyü,
+// kamping, pansiyon, öğrenci yurdu ve diğer benzeri tesis — eski ekran dokümanı 4.4.2 / 4.5.2 / 4.6.2 / 4.7.2 / 4.8.2)?
+const coklYapiMi = (esas: SinifKod, c: Cevaplar) => (esas === 'konut' && c.konutTuru === 'site') || (esas === 'kurumsal' && c.yerlesim === 'yerleske') ||
+  (esas === 'konaklama' && ['tatil_koyu', 'kamping', 'pansiyon', 'yurt', 'diger'].includes(c.konaklamaTuru))
+
+// Kullanıcı yükü: BYKHY'de yuvarlama kuralı yok; 50 kişi eşiğinde güvenli tarafta kalmak için yukarı yuvarlanır (kullanıcı kararı,
+// 11 Ekim: 74 m² ÷ 1,5 = 49,3 → 50). Kayan nokta artığı (ör. 50,0000001) yüzünden fazladan bir kişi eklenmesin diye küçük tolerans.
+const yukariYuvarla = (x: number) => Math.ceil(x - 1e-9)
+
+// Diğer kullanımın yapıyla ilişki seçenekleri: "yardımcı / ortak alan" yalnız ana kullanıma göre izin verilen sınıflarda,
+// "ayrı bir yapıda" yalnız site / yerleşkede çıkar (soru "bu yapıda" diye sorulduğu için tek yapıda anlamsız).
+export const iliskiSecenekleri = (esas: SinifKod, s: SinifKod, c: Cevaplar = {}): Secenek[] => {
+  const izin = YARDIMCI_OLABILIR[esas]
+  const metin = ILISKI_METNI[esas] ?? {}
+  return ILISKI
+    .filter(o => (o.deger !== 'yardimci' || !izin || izin.includes(s)) && (o.deger !== 'ayri' || coklYapiMi(esas, c)))
+    .map(o => ({ ...o, ...metin[o.deger] }))
+}
+// İlişki cevabı: tek seçenek kalıyorsa soru sorulmaz, o seçenek geçerlidir; seçeneklerde olmayan eski cevap yok sayılır.
+export const iliskiCevabi = (esas: SinifKod, s: SinifKod, c: Cevaplar): string | undefined => {
+  const secenekler = iliskiSecenekleri(esas, s, c)
+  if (secenekler.length === 1) return secenekler[0].deger
+  const v = c[`iliski_${s}`]
+  return secenekler.some(o => o.deger === v) ? v : undefined
+}
 
 // ── Toplanma: kullanıcı yükü ──────────────────────────────────────────────────
 export function toplanmaKisi(c: Cevaplar, p = ''): { kisi: number | null; dogrulama: boolean; aciklama: string } {
@@ -43,13 +72,13 @@ export function toplanmaKisi(c: Cevaplar, p = ''): { kisi: number | null; dogrul
     const o = c[`${p}toplanmaOturma`], a = c[`${p}toplanmaAyakta`]
     if (o === 'bilmiyorum' || a === 'bilmiyorum') return { kisi: null, dogrulama: true, aciklama: 'Alan bilinmediği için kullanıcı yükü hesaplanamadı' }
     if (typeof o !== 'number' || typeof a !== 'number') return { kisi: null, dogrulama: false, aciklama: '' }
-    const kisi = Math.floor(o / 1.0 + a / 0.5)
+    const kisi = yukariYuvarla(o / 1.0 + a / 0.5)
     return { kisi, dogrulama: false, aciklama: `Kullanıcı yükü ≈ ${kisi} kişi (oturma ${o} m² ÷ 1,0 + ayakta ${a} m² ÷ 0,5)` }
   }
   const alan = c[`${p}toplanmaAlani`]
   if (alan === 'bilmiyorum') return { kisi: null, dogrulama: true, aciklama: 'Alan bilinmediği için kullanıcı yükü hesaplanamadı' }
   if (typeof alan !== 'number') return { kisi: null, dogrulama: false, aciklama: '' }
-  const kisi = Math.floor(alan / tur.katsayi!)
+  const kisi = yukariYuvarla(alan / tur.katsayi!)
   return { kisi, dogrulama: false, aciklama: `Kullanıcı yükü ≈ ${kisi} kişi (${alan} m² ${tur.alanTuru} ÷ ${String(tur.katsayi).replace('.', ',')} m²/kişi)` }
 }
 
@@ -60,10 +89,9 @@ export function akis(d: Degerlendirme): Soru[] {
   const e = d.esas
   if (!e) return L
   const need = (q: Soru) => {
-    L.push(q)
-    if (q.tip === 'bilgi') throw DUR
-    const v = c[q.id]
-    if (q.tip === 'metin' ? v === undefined : !doluMu(v)) throw DUR
+    // Ortak yapı sorusu (ör. yapı inşaat alanı) ikinci kullanım için yeniden istenirse listeye tekrar eklenmez.
+    if (!L.some(x => x.id === q.id)) L.push(q)
+    if (!cevapliMi(q, c[q.id])) throw DUR
   }
 
   const toplanmaSorulari = (p: string, grup: Soru['grup']) => {
@@ -84,11 +112,41 @@ export function akis(d: Degerlendirme): Soru[] {
       const kamping = c.konaklamaTuru === 'kamping'
       need({ id: 'oda', tip: 'secim', grup: 'yapi', kisaAd: kamping ? 'Konaklama birimi sayısı' : 'Oda sayısı', yardim: 'oda',
         baslik: kamping ? 'Toplam yatılı konaklama birimi sayısı kaçtır?' : 'Konaklama amacıyla kullanılan toplam oda sayısı kaçtır?',
-        aciklama: kamping ? 'Bungalow, çadır, karavan / motokaravan yeri ve benzeri birimler birlikte sayılır.' : 'Günlük doluluk dikkate alınmaz. Konaklama için ayrılmış toplam oda sayısını esas alın.', secenekler: ODA })
+        aciklama: kamping ? 'Bungalow, çadır, karavan / motokaravan yeri ve benzeri birimler birlikte sayılır.' : 'Günlük doluluk dikkate alınmaz. Konaklama için ayrılmış toplam oda sayısını esas alın.',
+        secenekler: c.konaklamaTuru === 'yurt' ? [...ODA, ODA_BELIRSIZ] : ODA })
     }
     if (siniflar.some(s => ALAN_SINIFLARI.includes(s))) need({ id: 'alan', tip: 'secim', grup: 'yapi', kisaAd: 'Yapı inşaat alanı', yardim: 'alan', baslik: 'Yapınızın toplam yapı inşaat alanı kaç m²?', aciklama: 'Yalnızca kullandığınız bölümün değil, yapının bütün katlarını kapsayan toplam alan.', secenekler: ALAN })
+    // Ticaret: alan bilinmiyorsa tanım gösterilip m² istenir; girilen değer yapının alanı olarak bütün kullanımlara uygulanır.
+    if (siniflar.includes('ticaret') && c.alan === 'bilmiyorum') need({ id: 'alanM2', tip: 'sayi', grup: 'yapi', kisaAd: 'Yapı inşaat alanı (m²)', birim: 'm²', bilinmiyorDugmesi: true, baslik: 'Yapı İnşaat Alanı Nedir?', tanim: ALAN_TANIM })
   }
   const toplanmaSayilir = (p: string) => { const t = toplanmaKisi(c, p); return t.dogrulama || t.kisi === null || t.kisi >= TOPLANMA_KISI_ESIGI }
+
+  // Endüstri (ana kullanım p = '', diğer kullanım p = 'd_'): tehlike sınıfı → bilinmiyorsa onaylı projeden → olmazsa Ek-1 C → B → A
+  // (Endüstri kilitli akışlar, Ekran 6 / 6.4 / 6.4.1).
+  const endustriSorulari = (p: string, grup: Soru['grup']) => {
+    const ad = p ? 'Üretim bölümünün' : 'Tesisinizin'
+    need({ id: `${p}endTehlike`, tip: 'secim', grup, sinif: 'endustri', kisaAd: p ? 'Üretim tehlike sınıfı' : 'Tehlike sınıfı', baslik: `${ad} tehlike sınıfını biliyor musunuz?`, aciklama: 'Tehlike sınıfınızı onaylı yangın projenizden kontrol edebilirsiniz. EK-6’da da mevcut kullanımın projedeki tehlike sınıfına uygunluğu ayrıca kontrol edilir.', secenekler: TEHLIKE })
+    if (c[`${p}endTehlike`] !== 'bilmiyorum') return
+    need({ id: `${p}endProje`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Projeden tehlike sınıfı', baslik: 'Onaylı yangın projenizden tehlike sınıfınızı belirleyebiliyor musunuz?', aciklama: 'EK-6 Periyodik Kontrol Formunda yapının mevcut kullanımının projesinde belirtilen tehlike sınıfına uygunluğu kontrol edilir.', secenekler: PROJEDEN })
+    if (c[`${p}endProje`] === 'evet') {
+      need({ id: `${p}endProjeTehlike`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Projedeki tehlike sınıfı', baslik: 'Projenizde belirtilen tehlike sınıfı nedir?', secenekler: TEHLIKE.filter(o => o.deger !== 'bilmiyorum') })
+      return
+    }
+    need({ id: `${p}ek1C`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Ek-1/C kontrolü', baslik: 'Faaliyetiniz Yüksek Tehlike kullanım alanları kapsamında mı?', liste: EK1.C, secenekler: EVET_HAYIR })
+    if (c[`${p}ek1C`] === 'hayir') need({ id: `${p}ek1B`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Ek-1/B kontrolü', baslik: 'Faaliyetiniz Orta Tehlike kullanım alanları kapsamında mı?', liste: EK1.B, secenekler: EVET_HAYIR })
+    if (c[`${p}ek1B`] === 'hayir') need({ id: `${p}ek1A`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Ek-1/A kontrolü', baslik: 'Tesisiniz Düşük Tehlike şartlarının hepsini sağlıyor mu?', liste: EK1.A, secenekler: EVET_HAYIR })
+  }
+  // Depolama (ana kullanım p = '', diğer kullanım p = 'd_'): tür → tehlikeli madde → tehlike sınıfı. Ana kullanımda esas olarak tehlikeli
+  // madde depolanıyorsa Yüksek Tehlikeli Yer'e yönlendirilir; bölümde ise yüksek tehlikeli bölüm sayılır (3 yıl), tehlike sınıfı sorulmaz.
+  const depolamaSorulari = (p: string, grup: Soru['grup']) => {
+    need({ id: `${p}depoTuru`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Depolama türü', baslik: p ? 'Depolama bölümünde ne depolanıyor veya muhafaza ediliyor?' : 'Ne depolanıyor veya muhafaza ediliyor?', secenekler: DEPO_TURU })
+    need({ id: `${p}depoMadde`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Tehlikeli madde', baslik: 'Depolanan ürünler arasında LPG / parlayıcı gaz, patlayıcı madde, akaryakıt veya yanıcı sıvı var mı?', secenekler: DEPO_MADDE })
+    if (c[`${p}depoMadde`] === 'esas') {
+      if (!p) need({ id: 'yonlendirDepo', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Yüksek Tehlikeli Yer olarak değerlendirilmelidir', aciklama: 'Esas olarak parlayıcı, patlayıcı madde veya akaryakıt depolanan yerler BYKHY Madde 17 kapsamındadır.', eylemler: [{ etiket: 'Yüksek Tehlikeli Yerler olarak devam et', tip: 'esas', sinif: 'yuksek', ek: { yhMod: 'faaliyet', yhIliski: 'esas' } }] })
+      return
+    }
+    need({ id: `${p}depoTehlike`, tip: 'secim', grup, sinif: 'depolama', kisaAd: p ? 'Depo tehlike sınıfı' : 'Tehlike sınıfı', baslik: p ? 'Depolama bölümünün tehlike sınıfını biliyor musunuz?' : 'Tesisinizin tehlike sınıfını biliyor musunuz?', aciklama: 'Onaylı yangın projenizde yazar.', secenekler: TEHLIKE })
+  }
 
   try {
     // 1) Esas kullanıma özel sorular
@@ -102,22 +160,16 @@ export function akis(d: Degerlendirme): Soru[] {
       if (c.kurumsalTuru === 'muayenehane') need({ id: 'yonlendirMuayenehane', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Muayenehane Büro Binaları kapsamındadır', aciklama: 'Doktor veya diş hekimi muayenehanesi, adı sağlık faaliyeti olsa da BYKHY Madde 12’ye göre Büro Binaları kapsamında değerlendirilir.', eylemler: [{ etiket: 'Büro Binaları olarak devam et', tip: 'esas', sinif: 'buro' }] })
       need({ id: 'yerlesim', tip: 'secim', grup: 'yapi', kisaAd: 'Yerleşim', baslik: 'Değerlendirdiğiniz yapı nerede?', secenekler: YERLESIM })
       if (c.yerlesim === 'yerleske') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen yapı', baslik: 'Hangi yapıyı değerlendiriyorsunuz?', aciklama: 'Kampüs veya yerleşkedeki her ayrı yapı kendi fiilî kullanımına göre değerlendirilir. Yapı adı isteğe bağlıdır.' })
+    } else if (e === 'ticaret') {
+      need({ id: 'ticaretTuru', tip: 'secim', grup: 'yapi', sinif: 'ticaret', kisaAd: 'Ticari kullanım türü', baslik: 'Ticari kullanımınızın türü nedir?', secenekler: TICARET_TURU })
     } else if (e === 'toplanma') {
       toplanmaSorulari('', 'yapi')
       const t = toplanmaKisi(c)
       if (t.kisi !== null && t.kisi < TOPLANMA_KISI_ESIGI) need({ id: 'yonlendirToplanma', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Toplanma amaçlı bina olarak değerlendirilmez', aciklama: `${t.aciklama}. BYKHY Madde 15’e göre 50’den az kişinin toplanmasına uygun bölümler esas binanın kullanım sınıfına tabidir. Lütfen binanın esas kullanım sınıfını seçin.`, eylemler: [{ etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }] })
     } else if (e === 'endustri') {
-      need({ id: 'endTehlike', tip: 'secim', grup: 'yapi', sinif: 'endustri', kisaAd: 'Tehlike sınıfı', baslik: 'Tesisinizin tehlike sınıfını biliyor musunuz?', aciklama: 'Tehlike sınıfınızı onaylı yangın projenizden kontrol edebilirsiniz. EK-6’da da mevcut kullanımın projedeki tehlike sınıfına uygunluğu ayrıca kontrol edilir.', secenekler: TEHLIKE })
-      if (c.endTehlike === 'bilmiyorum') {
-        need({ id: 'ek1C', tip: 'secim', grup: 'yapi', kisaAd: 'Ek-1/C kontrolü', baslik: 'Faaliyetiniz Yüksek Tehlike kullanım alanları kapsamında mı?', liste: EK1.C, secenekler: EVET_HAYIR })
-        if (c.ek1C === 'hayir') need({ id: 'ek1B', tip: 'secim', grup: 'yapi', kisaAd: 'Ek-1/B kontrolü', baslik: 'Faaliyetiniz Orta Tehlike kullanım alanları kapsamında mı?', liste: EK1.B, secenekler: EVET_HAYIR })
-        if (c.ek1B === 'hayir') need({ id: 'ek1A', tip: 'secim', grup: 'yapi', kisaAd: 'Ek-1/A kontrolü', baslik: 'Tesisiniz Düşük Tehlike şartlarının hepsini sağlıyor mu?', liste: EK1.A, secenekler: EVET_HAYIR })
-      }
+      endustriSorulari('', 'yapi')
     } else if (e === 'depolama') {
-      need({ id: 'depoTuru', tip: 'secim', grup: 'yapi', sinif: 'depolama', kisaAd: 'Depolama türü', baslik: 'Ne depolanıyor veya muhafaza ediliyor?', secenekler: DEPO_TURU })
-      need({ id: 'depoMadde', tip: 'secim', grup: 'yapi', kisaAd: 'Tehlikeli madde', baslik: 'Depolanan ürünler arasında LPG / parlayıcı gaz, patlayıcı madde, akaryakıt veya yanıcı sıvı var mı?', secenekler: DEPO_MADDE })
-      if (c.depoMadde === 'esas') need({ id: 'yonlendirDepo', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Yüksek Tehlikeli Yer olarak değerlendirilmelidir', aciklama: 'Esas olarak parlayıcı, patlayıcı madde veya akaryakıt depolanan yerler BYKHY Madde 17 kapsamındadır.', eylemler: [{ etiket: 'Yüksek Tehlikeli Yerler olarak devam et', tip: 'esas', sinif: 'yuksek', ek: { yhMod: 'faaliyet', yhIliski: 'esas' } }] })
-      need({ id: 'depoTehlike', tip: 'secim', grup: 'yapi', kisaAd: 'Tehlike sınıfı', baslik: 'Tesisinizin tehlike sınıfını biliyor musunuz?', aciklama: 'Onaylı yangın projenizde yazar.', secenekler: TEHLIKE })
+      depolamaSorulari('', 'yapi')
     } else if (e === 'yuksek') {
       need({ id: 'yhFaaliyet', tip: 'secim', grup: 'yapi', sinif: 'yuksek', kisaAd: 'Faaliyet', baslik: 'Tesisinizde hangi tehlikeli madde ile faaliyet yürütülüyor?', secenekler: YH_FAALIYET })
       need({ id: 'yhMod', tip: 'secim', grup: 'yapi', kisaAd: 'Faaliyet biçimi', baslik: 'Bu maddeler tesiste nasıl bulunuyor?', secenekler: YH_MOD })
@@ -129,26 +181,27 @@ export function akis(d: Degerlendirme): Soru[] {
     // 2) Esas kullanıma ait yapı bilgileri
     yapiSorulari(e === 'toplanma' && !toplanmaSayilir('') ? [] : [e])
 
-    // 3) Diğer kullanımlar
-    const esasAd = kucuk(kisa(e))
-    need({ id: 'digerVar', tip: 'secim', grup: 'diger', kisaAd: 'Başka kullanım', baslik: `Bu yapıda ${esasAd} dışında başka bir kullanım bulunuyor mu?`,
-      secenekler: [{ deger: 'hayir', etiket: `Hayır, yalnızca ${esasAd} olarak kullanılıyor` }, { deger: 'evet', etiket: 'Evet, başka kullanım da var' }] })
+    // 3) Diğer kullanımlar (karma kullanım hesaplanmayan ana kullanımlarda bu adım yok)
+    if (KARMA_YOK.includes(e)) return L
+    need({ id: 'digerVar', tip: 'secim', grup: 'diger', kisaAd: 'Başka kullanım', baslik: DIGER_VAR_METNI[e].soru,
+      secenekler: [{ deger: 'hayir', etiket: DIGER_VAR_METNI[e].hayir }, { deger: 'evet', etiket: 'Evet, başka kullanım da var' }] })
     if (c.digerVar === 'evet') {
       need({ id: 'digerler', tip: 'coklu', grup: 'diger', kisaAd: 'Diğer kullanımlar', baslik: 'Yapıdaki diğer kullanımları seçin', aciklama: 'Bir veya birden fazla kullanım seçebilirsiniz. Kart örnekleri yönlendirme içindir; kesin sınıf ilgili kullanımın kendi akışında belirlenir.', secenekler: DIGER_KULLANIM_KARTLARI.filter(k => k.sinif !== e) })
       const digerler: SinifKod[] = (c.digerler as string[]).filter(s => s !== 'bilinmiyor') as SinifKod[]
       for (const s of digerler) {
-        need({ id: `iliski_${s}`, tip: 'secim', grup: 'diger', sinif: s, kisaAd: `${kisa(s)} ile ilişki`, baslik: `${SINIFLAR[s].ad}: yapıyla ilişkisi nedir?`, aciklama: 'Her farklı alan ayrı kullanım değildir.', secenekler: ILISKI })
-        if (c[`iliski_${s}`] !== 'ayni') continue
+        const iliskiSec = iliskiSecenekleri(e, s, c)
+        if (iliskiSec.length > 1) need({ id: `iliski_${s}`, tip: 'secim', grup: 'diger', sinif: s, kisaAd: `${kisa(s)} ile ilişki`, baslik: `${SINIFLAR[s].ad}: yapıyla ilişkisi nedir?`, aciklama: 'Her farklı alan ayrı kullanım değildir.', secenekler: iliskiSec })
+        if (iliskiCevabi(e, s, c) !== 'ayni') continue
         if (s === 'toplanma') toplanmaSorulari('d_', 'diger')
         if (s === 'depolama') {
           need({ id: 'd_depoAlani', tip: 'sayi', grup: 'diger', sinif: 'depolama', birim: 'm²', bilinmiyorDugmesi: true, kisaAd: 'Depo alanı', baslik: 'Depolama bölümünün alanı kaç m²?', aciklama: 'BYKHY Madde 16’ya göre bir binanın içindeki 50 m²’den küçük depolama bölümleri esas binanın parçası sayılır.' })
-          if (c.d_depoAlani === 'bilmiyorum' || c.d_depoAlani >= DEPO_ALAN_ESIGI) need({ id: 'd_depoTehlike', tip: 'secim', grup: 'diger', sinif: 'depolama', kisaAd: 'Depo tehlike sınıfı', baslik: 'Depolama bölümünün tehlike sınıfını biliyor musunuz?', aciklama: 'Onaylı yangın projenizde yazar.', secenekler: TEHLIKE })
+          if (c.d_depoAlani === 'bilmiyorum' || c.d_depoAlani >= DEPO_ALAN_ESIGI) depolamaSorulari('d_', 'diger')
         }
-        if (s === 'endustri') need({ id: 'd_endTehlike', tip: 'secim', grup: 'diger', sinif: 'endustri', kisaAd: 'Üretim tehlike sınıfı', baslik: 'Üretim bölümünün tehlike sınıfını biliyor musunuz?', aciklama: 'Onaylı yangın projenizde yazar.', secenekler: TEHLIKE })
+        if (s === 'endustri') endustriSorulari('d_', 'diger')
         if (s === 'yuksek') need({ id: 'd_yhMod', tip: 'secim', grup: 'diger', sinif: 'yuksek', kisaAd: 'Tehlikeli madde faaliyeti', baslik: 'Tehlikeli maddeler bu bölümde nasıl bulunuyor?', secenekler: YH_MOD })
       }
       // Aynı yapıdaki bağımsız kullanımlar için henüz sorulmamış yapı bilgileri
-      const ayni = digerler.filter(s => c[`iliski_${s}`] === 'ayni' && (s !== 'toplanma' || toplanmaSayilir('d_')))
+      const ayni = digerler.filter(s => iliskiCevabi(e, s, c) === 'ayni' && (s !== 'toplanma' || toplanmaSayilir('d_')))
       yapiSorulari(ayni)
     }
   } catch (err) {
@@ -162,8 +215,7 @@ export const mevcutSoru = (d: Degerlendirme): Soru | null => {
   const son = L[L.length - 1]
   if (!son) return null
   const v = d.c[son.id]
-  const cevapli = son.tip === 'bilgi' ? false : son.tip === 'metin' ? v !== undefined : doluMu(v)
-  return cevapli ? null : son
+  return cevapliMi(son, v) ? null : son
 }
 
 export function cevapEtiketi(q: Soru, v: any): string {
@@ -176,7 +228,9 @@ export function cevapEtiketi(q: Soru, v: any): string {
 
 // ── Hesap ─────────────────────────────────────────────────────────────────────
 export type KullanimDurumu = 'gecerli' | 'tanimsiz' | 'belirlenemedi' | 'inceleme' | 'ana_parcasi' | 'ayri_yapi' | 'eksik'
-export type KullanimSonucu = { anahtar: string; sinif: SinifKod | null; ad: string; madde: number | null; iliski: 'esas' | 'yardimci' | 'ayni' | 'ayri' | null; periyot: number | null; durum: KullanimDurumu; belirleyici: string }
+// soru: periyot belirlenemediyse sonucu belirleyen sorunun kimliği (sonuç ekranındaki "… Düzenle" düğmesi o soruya döner).
+export type KullanimSonucu = { anahtar: string; sinif: SinifKod | null; ad: string; madde: number | null; iliski: 'esas' | 'yardimci' | 'ayni' | 'ayri' | null; periyot: number | null; durum: KullanimDurumu; belirleyici: string; soru?: string }
+type SinifCikti = Pick<KullanimSonucu, 'periyot' | 'durum' | 'belirleyici' | 'soru'>
 export type Sonuc = {
   kullanimlar: KullanimSonucu[]
   nihai: number | null
@@ -199,51 +253,89 @@ const tehlikeyeGore = (t: any, kaynak = 'Tehlike sınıfı') => {
   return { periyot: PERIYOT.tehlike[t] ?? null, durum: 'gecerli' as const, belirleyici: `${kaynak}: ${kucuk(TEHLIKE.find(s => s.deger === t)!.etiket)}` }
 }
 
-function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean): Pick<KullanimSonucu, 'periyot' | 'durum' | 'belirleyici'> {
+// Yapı inşaat alanı: aralık seçimi ya da (alan bilinmeyip m² girildiyse) girilen değer. bekle: m² sorusu cevaplanmadıysa eksik say
+// (Ticaret'te soruluyor); diğer sınıflarda m² sorulmadığı için "bilmiyorum" geçerli kalır.
+const alanSonucu = (c: Cevaplar, bekle: boolean) => {
+  if (c.alan === 'bilmiyorum' && typeof c.alanM2 === 'number') {
+    const a = bandaGore(c.alanM2 <= 1000 ? 'le_1000' : 'gt_1000', PERIYOT.alan, ALAN, 'Yapı inşaat alanı')
+    return { ...a, belirleyici: `Yapı inşaat alanı: ${c.alanM2.toLocaleString('tr-TR')} m²` }
+  }
+  if (c.alan === 'bilmiyorum' && bekle && c.alanM2 === undefined) return bandaGore(undefined, PERIYOT.alan, ALAN, 'Yapı inşaat alanı')
+  return bandaGore(c.alan, PERIYOT.alan, ALAN, 'Yapı inşaat alanı')
+}
+
+const EKSIK: SinifCikti = { periyot: null, durum: 'eksik', belirleyici: '' }
+// Periyot çıkmadıysa (belirlenemedi / doğrulama) sonucu belirleyen soruyu ekle.
+const soruyla = (r: SinifCikti, soru: string): SinifCikti => (['belirlenemedi', 'inceleme'].includes(r.durum) ? { ...r, soru } : r)
+
+// Endüstri: tehlike sınıfı → onaylı projedeki sınıf → Ek-1 C / B / A (p = '' ana kullanım, 'd_' diğer kullanım).
+function endustriSonucu(c: Cevaplar, p: string): SinifCikti {
+  const t = c[`${p}endTehlike`]
+  if (t === undefined) return EKSIK
+  if (t !== 'bilmiyorum') return tehlikeyeGore(t)
+  if (c[`${p}endProje`] === 'evet') return tehlikeyeGore(c[`${p}endProjeTehlike`], 'Onaylı projedeki tehlike sınıfı')
+  if (c[`${p}endProje`] !== 'hayir') return EKSIK
+  if (c[`${p}ek1C`] === 'evet') return tehlikeyeGore('yuksek', 'Ek-1/C kapsamında')
+  if (c[`${p}ek1B`] === 'evet') return tehlikeyeGore('orta', 'Ek-1/B kapsamında')
+  if (c[`${p}ek1A`] === 'evet') return tehlikeyeGore('dusuk', 'Ek-1/A şartlarını sağlıyor')
+  if (c[`${p}ek1A`] === 'hayir') return { periyot: null, durum: 'belirlenemedi', belirleyici: 'Tehlike sınıfı bu aşamada kesinleştirilemedi', soru: `${p}endTehlike` }
+  return EKSIK
+}
+
+// Depolama: tehlike sınıfı (bilinmiyorsa otopark → Ek-1/B orta, otobüs / kamyon / vagon deposu → Ek-1/C yüksek). Tehlikeli madde kısmen
+// varsa ya da bilinmiyorsa sınıf doğrulanmalı; yalnız yüksek tehlike (3 yıl, en kısa süre) kesin kalır. Bölümde esas olarak tehlikeli
+// madde depolanıyorsa yüksek tehlikeli bölüm: 3 yıl (EK-1 sınır olmaksızın; kullanıcı kararı 11 Ekim).
+function depolamaSonucu(c: Cevaplar, p: string): SinifCikti {
+  const madde = c[`${p}depoMadde`]
+  if (madde === undefined) return EKSIK
+  if (madde === 'esas') return p
+    ? { periyot: PERIYOT.yuksekTehlike, durum: 'gecerli', belirleyici: 'Esas olarak parlayıcı / patlayıcı madde veya akaryakıt depolanan bölüm: yüksek tehlikeli yer, sınır olmaksızın (BYKHY Md. 17)' }
+    : EKSIK
+  const tehlike = c[`${p}depoTehlike`], tur = c[`${p}depoTuru`]
+  const r: SinifCikti = tehlike === 'bilmiyorum' && tur === 'otopark' ? tehlikeyeGore('orta', 'Ek-1/B “otoparklar”')
+    : tehlike === 'bilmiyorum' && tur === 'agir_vasita' ? tehlikeyeGore('yuksek', 'Ek-1/C otobüs / kamyon / vagon depoları')
+    : soruyla(tehlikeyeGore(tehlike), `${p}depoTehlike`)
+  if (r.durum !== 'gecerli' || r.periyot === PERIYOT.tehlike.yuksek || !['kismen', 'bilmiyorum'].includes(madde)) return r
+  const neden = madde === 'kismen' ? 'tehlikeli madde bulunduğu için' : 'tehlikeli madde bulunup bulunmadığı bilinmediği için'
+  return { periyot: null, durum: 'inceleme', belirleyici: `${r.belirleyici}; ${neden} sınıf doğrulanmalı`, soru: `${p}depoMadde` }
+}
+
+function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean): SinifCikti {
   const p = esas ? '' : 'd_'
   switch (s) {
-    case 'konut': return bandaGore(c.yukseklik, PERIYOT.yukseklik, YUKSEKLIK, 'Yapı yüksekliği')
-    case 'konaklama': return bandaGore(c.oda, PERIYOT.oda, ODA, c.konaklamaTuru === 'kamping' ? 'Konaklama birimi sayısı' : 'Oda sayısı')
-    case 'kurumsal': case 'buro': case 'ticaret': return bandaGore(c.alan, PERIYOT.alan, ALAN, 'Yapı inşaat alanı')
+    case 'konut': return soruyla(bandaGore(c.yukseklik, PERIYOT.yukseklik, YUKSEKLIK, 'Yapı yüksekliği'), 'yukseklik')
+    case 'konaklama':
+      if (c.oda === 'belirsiz') return { periyot: null, durum: 'inceleme', belirleyici: 'Koğuş düzeni / oda sayısı belirsiz; yatak veya kişi sayısı oda sayısına çevrilmez', soru: 'oda' }
+      return soruyla(bandaGore(c.oda, PERIYOT.oda, ODA, c.konaklamaTuru === 'kamping' ? 'Konaklama birimi sayısı' : 'Oda sayısı'), 'oda')
+    case 'ticaret': return soruyla(alanSonucu(c, true), 'alan')
+    case 'kurumsal': case 'buro': return soruyla(alanSonucu(c, false), 'alan')
     case 'toplanma': {
       const t = toplanmaKisi(c, p)
-      if (t.dogrulama) return { periyot: null, durum: 'inceleme', belirleyici: t.aciklama }
-      if (t.kisi === null) return { periyot: null, durum: 'eksik', belirleyici: '' }
+      const tur = TOPLANMA_TURU.find(x => x.deger === c[`${p}toplanmaTuru`])
+      if (t.dogrulama) return { periyot: null, durum: 'inceleme', belirleyici: t.aciklama, soru: tur?.mod === 'dogrulama' ? `${p}toplanmaTuru` : tur?.mod === 'oturma_ayakta' ? `${p}toplanmaOturma` : `${p}toplanmaAlani` }
+      if (t.kisi === null) return EKSIK
       if (t.kisi < TOPLANMA_KISI_ESIGI) return { periyot: null, durum: 'ana_parcasi', belirleyici: `${t.aciklama}; 50’nin altında olduğu için esas kullanıma tabi (BYKHY Md. 15)` }
-      const a = bandaGore(c.alan, PERIYOT.alan, ALAN, 'Yapı inşaat alanı')
+      const a = soruyla(alanSonucu(c, false), 'alan')
       return { ...a, belirleyici: [t.aciklama, a.belirleyici].filter(Boolean).join(' · ') }
     }
-    case 'endustri': {
-      if (!esas) return tehlikeyeGore(c.d_endTehlike)
-      if (c.endTehlike !== 'bilmiyorum') return tehlikeyeGore(c.endTehlike)
-      if (c.ek1C === 'evet') return tehlikeyeGore('yuksek', 'Ek-1/C kapsamında')
-      if (c.ek1B === 'evet') return tehlikeyeGore('orta', 'Ek-1/B kapsamında')
-      if (c.ek1A === 'evet') return tehlikeyeGore('dusuk', 'Ek-1/A şartlarını sağlıyor')
-      if (c.ek1A === 'hayir') return { periyot: null, durum: 'belirlenemedi', belirleyici: 'Tehlike sınıfı bu aşamada kesinleştirilemedi' }
-      return { periyot: null, durum: 'eksik', belirleyici: '' }
-    }
+    case 'endustri': return endustriSonucu(c, p)
     case 'depolama': {
-      if (!esas) {
-        if (c.d_depoAlani === undefined) return { periyot: null, durum: 'eksik', belirleyici: '' }
-        if (typeof c.d_depoAlani === 'number' && c.d_depoAlani < DEPO_ALAN_ESIGI) return { periyot: null, durum: 'ana_parcasi', belirleyici: `${c.d_depoAlani} m²; 50 m²’den küçük depo esas binanın parçası (BYKHY Md. 16)` }
-        return tehlikeyeGore(c.d_depoTehlike)
-      }
-      if (c.depoTehlike === 'bilmiyorum') {
-        if (c.depoTuru === 'otopark') return tehlikeyeGore('orta', 'Ek-1/B “otoparklar”')
-        if (c.depoTuru === 'agir_vasita') return tehlikeyeGore('yuksek', 'Ek-1/C otobüs / kamyon / vagon depoları')
-      }
-      const r = tehlikeyeGore(c.depoTehlike)
-      return c.depoMadde === 'kismen' && r.durum === 'gecerli' ? { ...r, durum: 'inceleme', periyot: null, belirleyici: `${r.belirleyici}; tehlikeli madde bulunduğu için sınıf doğrulanmalı` } : r
+      if (esas) return depolamaSonucu(c, '')
+      if (c.d_depoAlani === undefined) return EKSIK
+      if (typeof c.d_depoAlani === 'number' && c.d_depoAlani < DEPO_ALAN_ESIGI) return { periyot: null, durum: 'ana_parcasi', belirleyici: `${c.d_depoAlani} m²; 50 m²’den küçük depo esas binanın parçası (BYKHY Md. 16)` }
+      return depolamaSonucu(c, 'd_')
     }
     case 'yuksek': {
       if (!esas) {
-        if (c.d_yhMod === undefined) return { periyot: null, durum: 'eksik', belirleyici: '' }
+        // Aynı yapıdaki bağımsız yüksek tehlikeli bölüm: EK-1 sınır olmaksızın 3 yıl, karma kuralıyla yapıya uygulanır (kullanıcı kararı 11 Ekim).
+        if (c.d_yhMod === undefined) return EKSIK
         if (c.d_yhMod === 'kendi') return { periyot: null, durum: 'ana_parcasi', belirleyici: 'Yalnızca kendi ihtiyacı için kullanım; esas kullanıma tabi' }
-        return { periyot: null, durum: 'inceleme', belirleyici: 'Bölüm olarak bulunan yüksek tehlikeli faaliyet; kontrol süreniz kısalabilir, detaylı analizde netleşir' }
+        if (c.d_yhMod === 'faaliyet') return { periyot: PERIYOT.yuksekTehlike, durum: 'gecerli', belirleyici: 'Bağımsız yüksek tehlikeli bölüm; sınır olmaksızın (BYKHY Md. 17)' }
+        return { periyot: null, durum: 'inceleme', belirleyici: 'Tehlikeli maddenin bölümde nasıl bulunduğu bilinmiyor; kontrol süreniz 3 yıla inebilir', soru: 'd_yhMod' }
       }
-      if (c.yhIliski === undefined) return { periyot: null, durum: 'eksik', belirleyici: '' }
+      if (c.yhIliski === undefined) return EKSIK
       if (c.yhIliski === 'esas') return { periyot: PERIYOT.yuksekTehlike, durum: 'gecerli', belirleyici: 'Yüksek tehlikeli yerlerde sınır olmaksızın' }
-      return { periyot: null, durum: 'inceleme', belirleyici: 'Faaliyetin tesisle ilişkisi doğrulanmalı' }
+      return { periyot: null, durum: 'inceleme', belirleyici: 'Faaliyetin tesisle ilişkisi doğrulanmalı', soru: 'yhIliski' }
     }
   }
 }
@@ -254,11 +346,11 @@ export function hesapla(d: Degerlendirme): Sonuc {
   if (d.esas) {
     kullanimlar.push({ anahtar: 'esas', sinif: d.esas, ad: SINIFLAR[d.esas].ad, madde: SINIFLAR[d.esas].madde, iliski: 'esas', ...sinifSonucu(d.esas, c, true) })
   }
-  if (c.digerVar === 'evet' && Array.isArray(c.digerler)) {
+  if (c.digerVar === 'evet' && Array.isArray(c.digerler) && !KARMA_YOK.includes(d.esas!)) {
     for (const k of c.digerler as string[]) {
-      if (k === 'bilinmiyor') { kullanimlar.push({ anahtar: k, sinif: null, ad: 'Kullanım türü bilinmeyen alan', madde: null, iliski: null, periyot: null, durum: 'belirlenemedi', belirleyici: 'Kullanım türü belirlenemedi' }); continue }
+      if (k === 'bilinmiyor') { kullanimlar.push({ anahtar: k, sinif: null, ad: 'Kullanım türü bilinmeyen alan', madde: null, iliski: null, periyot: null, durum: 'belirlenemedi', belirleyici: 'Kullanım türü belirlenemedi', soru: 'digerler' }); continue }
       const s = k as SinifKod
-      const iliski = c[`iliski_${s}`] as KullanimSonucu['iliski'] | undefined
+      const iliski = iliskiCevabi(d.esas!, s, c) as KullanimSonucu['iliski'] | undefined
       const temel = { anahtar: s, sinif: s, ad: SINIFLAR[s].ad, madde: SINIFLAR[s].madde, iliski: iliski ?? null }
       if (!iliski) kullanimlar.push({ ...temel, periyot: null, durum: 'eksik', belirleyici: '' })
       else if (iliski === 'yardimci') kullanimlar.push({ ...temel, periyot: null, durum: 'ana_parcasi', belirleyici: 'Yardımcı / ortak alan; ana kullanımla birlikte değerlendirildi' })

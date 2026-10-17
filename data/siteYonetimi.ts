@@ -45,6 +45,5 @@ export const SITE_SONUC_GRUPLARI = {
   belirlenen: 'Periyodik kontrol süresi belirlenen yapılar',
   karma: 'Karma kullanım değerlendirmesi gereken yapılar',
   eksik: 'Eksik bilgi nedeniyle süresi belirlenemeyen yapılar',
-  // Belgede "EK-1'de ayrı süre…"; kullanıcı kuralı (17 Ekim): ekranda EK-1 / BYKHY atfı yok, yerine "mevzuat".
-  envanter: 'Mevzuatta ayrı süre tanımlanmayan ancak envantere dahil edilen alanlar'
+  envanter: "EK-1'de ayrı süre tanımlanmayan ancak envantere dahil edilen alanlar"
 }

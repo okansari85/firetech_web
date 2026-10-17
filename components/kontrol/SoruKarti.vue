@@ -16,32 +16,16 @@ watch(() => props.soru.id, () => { coklu.value = []; sayi.value = ''; metin.valu
 // ── Diğer (Kendim Yazacağım) — Düzeltme 02 ──
 const digerAcik = ref(props.deger === 'kendim')
 const yazi = ref('')
-const esasSoru = computed(() => !props.soru.id.startsWith('d_'))
 const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi.value) : []))
 // Bu sorunun sınıfındaki eşleşmeler; esas kullanımda başka sınıfa düşenler de önerilir (sınıf değiştirilir)
-const oneriler = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif || esasSoru.value)
-  .sort((a, b) => Number(b.sinif === props.soru.sinif) - Number(a.sinif === props.soru.sinif)))
+// Öneriler yalnız bu sorunun listesinden (kullanıcı kararı, 17 Ekim): başka sınıf önerilmez; eşleşme yoksa listeden seçilir
+const oneriler = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif && (props.soru.secenekler ?? []).some(o => o.deger === e.tur)))
 const yaziTemiz = computed(() => yazi.value.trim())
 const elleTur = ref('')
 watch(yazi, () => { elleTur.value = '' })
 const tanimliTurler = computed(() => (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
 const elleSec = () => emit('cevap', elleTur.value, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'elle' })
-// Bu sınıfla eşleşti ama alt tür bulunamadı: kullanıcı tanımlı türlerden seçer (sınıfla devam edilmez)
-const sinifOnerisi = computed(() => oneriler.value.find(e => e.sinif === props.soru.sinif && !e.tur) ?? null)
-const tiklanir = (e: Eslesme) => !!e.tur || e.sinif !== props.soru.sinif
-const oneriSec = (e: Eslesme) => {
-  const ad = yaziTemiz.value
-  if (!tiklanir(e)) return
-  if (e.sinif === props.soru.sinif) {
-    emit('cevap', e.tur ?? 'kendim', { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: e.tur ? 'tur' : 'sinif' })
-    return
-  }
-  // Başka sınıf: o sınıfla devam (tür sorusu varsa yazılan ad ve eşleşme oraya taşınır)
-  const turId = ({ konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' } as Record<string, string>)[e.sinif]
-  // Alt tür bulunamadıysa o sınıfın tür sorusu yeniden sorulur (yazılan ad korunur)
-  const ek = turId ? (e.tur ? { [turId]: e.tur, [`${turId}_yazi`]: ad, [`${turId}_eslesme`]: 'tur' } : { [`${turId}_yazi`]: ad }) : { yaziAd: ad }
-  emit('eylem', { etiket: '', tip: 'esas', sinif: e.sinif, ek })
-}
+const oneriSec = (e: Eslesme) => emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'tur' })
 
 const sayiDegeri = computed(() => { const n = parseFloat(sayi.value.replace(/\./g, '').replace(',', '.')); return isFinite(n) && n > 0 ? n : null })
 const toggle = (v: string) => { coklu.value = coklu.value.includes(v) ? coklu.value.filter(x => x !== v) : [...coklu.value, v] }
@@ -95,19 +79,10 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
       <template v-if="yaziTemiz.length >= 3">
         <div v-if="oneriler.length" class="oneri">
           <div class="oneri-ust"><AppIcon name="isilti" class="isilti" /><div><strong>{{ DIGER_YAZ_METIN.oneriBaslik }}</strong><p>{{ DIGER_YAZ_METIN.oneriAciklama }}</p></div></div>
-          <button v-for="e in oneriler" :key="`${e.sinif}-${e.tur}`" type="button" class="oneri-kart" :class="{ pasif: !tiklanir(e) }" @click="oneriSec(e)">
+          <button v-for="e in oneriler" :key="`${e.sinif}-${e.tur}`" type="button" class="oneri-kart" @click="oneriSec(e)">
             <span><small>{{ DIGER_YAZ_METIN.onerilen }}</small><strong>{{ eslesmeEtiketi(e) }}</strong></span>
-            <span v-if="tiklanir(e)" class="devam">Devam Et <AppIcon name="arrow" /></span>
+            <span class="devam">Devam Et <AppIcon name="arrow" /></span>
           </button>
-          <div v-if="sinifOnerisi" class="elle-satir">
-            <label class="elle">Tanımlı türlerden birini seçin
-              <select v-model="elleTur">
-                <option value="">Seçin</option>
-                <option v-for="o in tanimliTurler" :key="o.deger" :value="o.deger">{{ o.etiket }}</option>
-              </select>
-            </label>
-            <button type="button" class="btn gold-btn" :disabled="!elleTur" @click="elleSec">Devam Et <AppIcon name="arrow" class="ico" /></button>
-          </div>
         </div>
         <!-- Eşleşme yoksa devam edilemez (kullanıcı kararı, 17 Ekim): listeden seçilir ya da tanınan bir ad yazılır -->
         <!-- Eşleşme yoksa kullanıcı tanımlı türlerden birini seçer (kullanıcı kararı, 17 Ekim); seçmeden devam edilemez -->
@@ -194,9 +169,6 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .isilti { width: 26px; height: 26px; color: var(--gold); flex: none; }
 .oneri-kart { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border: 1px solid #ecd9a8; border-radius: 10px; background: #fff7e3; cursor: pointer; font: inherit; }
 .oneri-kart:hover { border-color: var(--gold); }
-.oneri-kart.pasif { cursor: default; }
-.oneri-kart.pasif:hover { border-color: #ecd9a8; }
-.elle-satir { display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap; }
 .oneri-kart small { display: block; font-size: 12.5px; color: var(--muted); }
 .oneri-kart strong { font-family: var(--font-head); font-size: 17px; color: var(--navy); }
 .oneri-kart .devam { display: inline-flex; align-items: center; gap: 6px; flex: none; font-family: var(--font-head); font-weight: 700; color: var(--gold); }

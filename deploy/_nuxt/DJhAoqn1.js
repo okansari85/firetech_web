@@ -1,1 +1,0 @@
-import{_ as s}from"./C_LY8z-g.js";import{_ as a,o as c,c as t,a as e,b as _,A as r}from"./41TsbZ5v.js";const d={},l={class:"warn",role:"note"},p={class:"warn-icon"};function i(o,m){const n=s;return c(),t("div",l,[e("span",p,[_(n,{name:"alert"})]),e("p",null,[r(o.$slots,"default",{},void 0)])])}const h=a(d,[["render",i],["__scopeId","data-v-45c25ddb"]]);export{h as _};

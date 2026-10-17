@@ -4,6 +4,7 @@ import type { Soru, Eylem } from '~/utils/onDegerlendirmeMotoru'
 import { YARDIM, SINIFLAR, DIGER_YAZ_METIN } from '~/data/onDegerlendirme'
 import { eslestir, eslesmeEtiketi, ALT_TURLER, type Eslesme } from '~/utils/eslestir'
 import { yzEslestir, type YzSonuc } from '~/utils/yzEslestir'
+import { TUR_IKON } from '~/data/turIkonlari'
 
 const props = defineProps<{ soru: Soru; deger?: any }>()
 const emit = defineEmits<{ cevap: [deger: any, ek?: Record<string, any>]; eylem: [e: Eylem] }>()
@@ -56,6 +57,8 @@ watch(yazi, () => { elleTur.value = '' })
 const tanimliTurler = computed(() => (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
 const elleSec = () => emit('cevap', elleTur.value, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'elle' })
 const TUR_ID: Partial<Record<string, string>> = { konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', endustri: 'endTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' }
+// Tür sorusunda seçeneklerin solunda ikon (Düzeltme 02 örnek ekranı); diğer kullanım (d_) tür sorularında da
+const turIkon = computed(() => (props.soru.sinif && props.soru.id.replace(/^d_/, '') === TUR_ID[props.soru.sinif] ? TUR_IKON[props.soru.sinif] : undefined))
 const oneriSec = (e: Eslesme) => {
   const ad = yaziTemiz.value
   if (e.sinif === props.soru.sinif) return emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: 'tur' })
@@ -98,7 +101,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
     <!-- Tek seçim -->
     <div v-if="soru.tip === 'secim'" class="secenekler" :class="{ iki: soru.ikiSutun || (soru.secenekler?.length ?? 0) > 4 }">
       <button v-for="s in soru.secenekler" :key="s.deger" type="button" class="secenek" :class="{ secili: s.deger === 'kendim' ? digerAcik : deger === s.deger, kendim: s.deger === 'kendim' }" @click="s.deger === 'kendim' ? (digerAcik = !digerAcik) : emit('cevap', s.deger)">
-        <span class="s-etiket"><AppIcon v-if="s.deger === 'kendim'" name="kalem" class="kalem" />{{ s.etiket }}</span>
+        <span class="s-etiket"><AppIcon v-if="s.deger === 'kendim'" name="kalem" class="kalem" /><TurIkonu v-else-if="turIkon?.[s.deger]" :name="turIkon[s.deger]!" class="tur-ikon" />{{ s.etiket }}</span>
         <span v-if="s.aciklama" class="s-aciklama">{{ s.aciklama }}</span>
         <span v-if="s.ornek" class="s-ornek">{{ s.ornek }}</span>
       </button>
@@ -194,6 +197,7 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 /* Diğer (Kendim Yazacağım) */
 .secenek.kendim .s-etiket { display: flex; align-items: center; gap: 8px; }
 .kalem { width: 20px; height: 20px; color: var(--gold); }
+.tur-ikon { width: 28px; height: 28px; flex: none; color: var(--navy); }
 .diger { margin-top: 14px; padding: 16px; border: 1.5px solid var(--gold); border-radius: 10px; background: #fffbf2; display: flex; flex-direction: column; gap: 12px; }
 .diger-ust { display: flex; gap: 12px; align-items: flex-start; }
 .diger-ust strong, .oneri-ust strong { font-family: var(--font-head); font-size: 18px; color: var(--navy); }

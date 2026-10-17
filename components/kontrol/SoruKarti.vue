@@ -28,19 +28,24 @@ const kuralYonlendirme = computed(() => (yonlendirilir.value ? eslesmeler.value.
 // Kurallar bulamazsa yapay zekâ; beklerken "analiz ediliyor"
 const yzOneri = ref<YzSonuc>(null)
 const yzDurum = ref<'bos' | 'bekliyor' | 'bitti'>('bos')
+// Debounce: yazma bitince (1 sn duraksama) tek istek; yeni harfte bekleyen/giden istek iptal edilir
+const YZ_BEKLEME = 1000
 let yzZaman: ReturnType<typeof setTimeout> | undefined
+let yzIptal: AbortController | undefined
 watch(() => [yazi.value, kuralOnerileri.value.length + kuralYonlendirme.value.length] as const, ([y, n]) => {
-  clearTimeout(yzZaman); yzOneri.value = null
+  clearTimeout(yzZaman); yzIptal?.abort(); yzOneri.value = null
   const metin = (y as string).trim()
   if (n || metin.length < 3 || !props.soru.sinif) { yzDurum.value = 'bos'; return }
   yzDurum.value = 'bekliyor'
   yzZaman = setTimeout(async () => {
-    const r = await yzEslestir(metin, props.soru.sinif!, (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
-    if (yazi.value.trim() !== metin) return
+    const iptal = (yzIptal = new AbortController())
+    const r = await yzEslestir(metin, props.soru.sinif!, (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'), iptal.signal)
+    if (iptal.signal.aborted || yazi.value.trim() !== metin) return
     yzOneri.value = r && (r.sinif === props.soru.sinif ? !!r.tur : yonlendirilir.value) ? r : null
     yzDurum.value = 'bitti'
-  }, 600)
+  }, YZ_BEKLEME)
 })
+onBeforeUnmount(() => { clearTimeout(yzZaman); yzIptal?.abort() })
 const oneriler = computed<Eslesme[]>(() =>
   kuralOnerileri.value.length ? kuralOnerileri.value
     : kuralYonlendirme.value.length ? kuralYonlendirme.value

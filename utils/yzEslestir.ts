@@ -11,19 +11,27 @@ const sade = (L: Secenek[]) => L.filter(o => o.deger !== 'kendim').map(o => ({ d
 
 export type YzSonuc = { sinif: SinifKod; tur?: string } | null
 const onbellek = new Map<string, YzSonuc>()
+const sureken = new Map<string, Promise<YzSonuc>>() // aynı metin için ikinci istek atılmaz
 
 // Bu sınıfın kategorileri bu sorunun seçeneklerinden; diğer sınıflarınki ALT_TURLER'den. Kategorisiz sınıfta tur yok.
-export async function yzEslestir(yazi: string, sinif: SinifKod, secenekler: Secenek[]): Promise<YzSonuc> {
+export async function yzEslestir(yazi: string, sinif: SinifKod, secenekler: Secenek[], signal?: AbortSignal): Promise<YzSonuc> {
   const y = yazi.trim()
   const anahtar = `${sinif}|${y.toLocaleLowerCase('tr')}`
   if (onbellek.has(anahtar)) return onbellek.get(anahtar)!
+  if (sureken.has(anahtar)) return sureken.get(anahtar)!
+  const is = istek(y, sinif, secenekler, anahtar, signal)
+  sureken.set(anahtar, is)
+  try { return await is } finally { sureken.delete(anahtar) }
+}
+
+async function istek(y: string, sinif: SinifKod, secenekler: Secenek[], anahtar: string, signal?: AbortSignal): Promise<YzSonuc> {
   try {
     const siniflar = kullanimSiniflari.map(k => {
       const kod = KART_SINIF[k.kod]!
       const liste = kod === sinif ? secenekler : ALT_TURLER[kod]
       return { kod, ad: k.ad, tanim: k.aciklama, ...(liste?.length ? { secenekler: sade(liste) } : {}) }
     })
-    const r = await $fetch<{ sinif: SinifKod | null; tur: string | null }>('/api/eslestir', { method: 'POST', body: { yazi: y, sinif, siniflar }, timeout: 9000 })
+    const r = await $fetch<{ sinif: SinifKod | null; tur: string | null }>('/api/eslestir', { method: 'POST', body: { yazi: y, sinif, siniflar }, timeout: 9000, signal })
     const sonuc: YzSonuc = r.sinif ? { sinif: r.sinif, ...(r.tur ? { tur: r.tur } : {}) } : null
     onbellek.set(anahtar, sonuc)
     return sonuc

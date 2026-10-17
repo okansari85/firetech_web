@@ -3,6 +3,7 @@
 import type { Soru, Eylem } from '~/utils/onDegerlendirmeMotoru'
 import { YARDIM, SINIFLAR, DIGER_YAZ_METIN } from '~/data/onDegerlendirme'
 import { eslestir, eslesmeEtiketi, ALT_TURLER, type Eslesme } from '~/utils/eslestir'
+import { yzEslestir, type YzSonuc } from '~/utils/yzEslestir'
 
 const props = defineProps<{ soru: Soru; deger?: any }>()
 const emit = defineEmits<{ cevap: [deger: any, ek?: Record<string, any>]; eylem: [e: Eylem] }>()
@@ -19,29 +20,45 @@ const yazi = ref('')
 const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi.value) : []))
 // Bu sorunun sınıfındaki eşleşmeler; esas kullanımda başka sınıfa düşenler de önerilir (sınıf değiştirilir)
 // Öneriler yalnız bu sorunun listesinden (kullanıcı kararı, 17 Ekim): başka sınıf önerilmez; eşleşme yoksa listeden seçilir
+// Bu sınıftaki kural eşleşmeleri (yalnız bu listeden)
 const kuralOnerileri = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif && (props.soru.secenekler ?? []).some(o => o.deger === e.tur)))
-// Kurallar bulamazsa yapay zekâ (yalnız bu listenin seçenekleri); beklerken "analiz ediliyor"
-const yzTur = ref<string | null>(null)
+// Başka sınıfa ait ise o sınıfa yönlendirilir (kullanıcı, 17 Ekim). Diğer kullanım sorularında (d_) yönlendirme yok.
+const yonlendirilir = computed(() => !props.soru.id.startsWith('d_'))
+const kuralYonlendirme = computed(() => (yonlendirilir.value ? eslesmeler.value.filter(e => e.sinif !== props.soru.sinif && e.tur) : []))
+// Kurallar bulamazsa yapay zekâ; beklerken "analiz ediliyor"
+const yzOneri = ref<YzSonuc>(null)
 const yzDurum = ref<'bos' | 'bekliyor' | 'bitti'>('bos')
 let yzZaman: ReturnType<typeof setTimeout> | undefined
-watch(() => [yazi.value, kuralOnerileri.value.length] as const, ([y, n]) => {
-  clearTimeout(yzZaman); yzTur.value = null
+watch(() => [yazi.value, kuralOnerileri.value.length + kuralYonlendirme.value.length] as const, ([y, n]) => {
+  clearTimeout(yzZaman); yzOneri.value = null
   const metin = (y as string).trim()
   if (n || metin.length < 3 || !props.soru.sinif) { yzDurum.value = 'bos'; return }
   yzDurum.value = 'bekliyor'
   yzZaman = setTimeout(async () => {
-    const tur = await yzEslestir(metin, SINIFLAR[props.soru.sinif!].ad, (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
+    const r = await yzEslestir(metin, props.soru.sinif!, (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
     if (yazi.value.trim() !== metin) return
-    yzTur.value = tur; yzDurum.value = 'bitti'
+    yzOneri.value = r && (r.sinif === props.soru.sinif ? !!r.tur : yonlendirilir.value) ? r : null
+    yzDurum.value = 'bitti'
   }, 600)
 })
-const oneriler = computed<Eslesme[]>(() => (kuralOnerileri.value.length ? kuralOnerileri.value : yzTur.value ? [{ sinif: props.soru.sinif!, tur: yzTur.value, terim: 'yz' }] : []))
+const oneriler = computed<Eslesme[]>(() =>
+  kuralOnerileri.value.length ? kuralOnerileri.value
+    : kuralYonlendirme.value.length ? kuralYonlendirme.value
+    : yzOneri.value ? [{ ...yzOneri.value, terim: 'yz' }] : [])
 const yaziTemiz = computed(() => yazi.value.trim())
 const elleTur = ref('')
 watch(yazi, () => { elleTur.value = '' })
 const tanimliTurler = computed(() => (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
 const elleSec = () => emit('cevap', elleTur.value, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'elle' })
-const oneriSec = (e: Eslesme) => emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'tur' })
+const TUR_ID: Partial<Record<string, string>> = { konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' }
+const oneriSec = (e: Eslesme) => {
+  const ad = yaziTemiz.value
+  if (e.sinif === props.soru.sinif) return emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: 'tur' })
+  // Başka sınıf: o sınıfla devam; kategori bulunduysa seçili gelir, bulunamadıysa o sınıfın listesi sorulur (yazılan ad korunur)
+  const id = TUR_ID[e.sinif]
+  const ek = id ? (e.tur ? { [id]: e.tur, [`${id}_yazi`]: ad, [`${id}_eslesme`]: 'tur' } : { [`${id}_yazi`]: ad }) : { yaziAd: ad }
+  emit('eylem', { etiket: '', tip: 'esas', sinif: e.sinif, ek })
+}
 
 const sayiDegeri = computed(() => { const n = parseFloat(sayi.value.replace(/\./g, '').replace(',', '.')); return isFinite(n) && n > 0 ? n : null })
 const toggle = (v: string) => { coklu.value = coklu.value.includes(v) ? coklu.value.filter(x => x !== v) : [...coklu.value, v] }

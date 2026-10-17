@@ -5,7 +5,9 @@
 
 export type SinifKod = 'konut' | 'konaklama' | 'kurumsal' | 'buro' | 'ticaret' | 'endustri' | 'toplanma' | 'depolama' | 'yuksek'
 
-export type Secenek = { deger: string; etiket: string; aciklama?: string; ornek?: string }
+// grup: kart maddesinden gelen seçeneğin, motorun hesapta kullandığı alt türe bağlanması (ör. Kafe → restoran katsayısı)
+export type Secenek = { deger: string; etiket: string; aciklama?: string; ornek?: string; grup?: string }
+export const turGrubu = (liste: Secenek[], v: any): any => liste.find(o => o.deger === v)?.grup ?? v
 
 // ── Kullanım sınıfları ─────────────────────────────────────────────────────────
 export const SINIFLAR: Record<SinifKod, { ad: string; kisa: string; madde: number; renk: string }> = {
@@ -84,18 +86,38 @@ export const SITE_TURU: Secenek[] = [
   { deger: 's2', etiket: 'Apartman / Rezidans Bloklarından Oluşan Site' },
   { deger: 's3', etiket: 'Karma Yapılı Site / Yerleşke', aciklama: '(müstakil villa - ev / apartman / rezidans blokları /yaşam alanı vb)' }
 ]
+// Tür listeleri Düzeltme 05 kart metinlerinden birebir, her madde bir seçenek (kullanıcı, 17 Ekim); "ve benzeri" yerine
+// "Diğer (Kendim Yazacağım)" + yapay zekâ eşleştirmesi.
 export const KONAKLAMA_TURU: Secenek[] = [
-  { deger: 'otel', etiket: 'Otel' }, { deger: 'motel', etiket: 'Motel' }, { deger: 'termal', etiket: 'Termal Tesis' },
-  { deger: 'tatil_koyu', etiket: 'Tatil Köyü' }, { deger: 'pansiyon', etiket: 'Pansiyon' },
-  { deger: 'kamping', etiket: 'Kamping', aciklama: 'Bungalow, çadır, karavan / motokaravan yeri ve benzeri konaklama birimleri.' },
+  { deger: 'otel', etiket: 'Otel' },
+  { deger: 'motel', etiket: 'Motel' },
+  { deger: 'termal', etiket: 'Termal Tesis' },
+  { deger: 'tatil_koyu', etiket: 'Tatil Köyü' },
+  { deger: 'pansiyon', etiket: 'Pansiyon' },
+  { deger: 'apart_otel', etiket: 'Apart Otel', grup: 'otel' },
+  { deger: 'butik_otel', etiket: 'Butik Otel', grup: 'otel' },
+  { deger: 'misafirhane', etiket: 'Misafirhane', grup: 'diger' },
+  { deger: 'konukevi', etiket: 'Konukevi', grup: 'diger' },
   { deger: 'yurt', etiket: 'Öğrenci Yurdu' },
-  { deger: 'diger', etiket: 'Diğer Benzeri Konaklama Tesisi', aciklama: 'Adı farklı olsa da esas kullanım amacı yatılı konaklama olan tesisler.' }
+  { deger: 'kamping', etiket: 'Kamping', aciklama: 'Bungalow, çadır, karavan / motokaravan yeri ve benzeri konaklama birimleri.' },
+  { deger: 'kamp', etiket: 'Kamp', grup: 'kamping' }
 ]
 export const KURUMSAL_TURU: Secenek[] = [
-  { deger: 'egitim', etiket: 'Eğitim Tesisi', ornek: 'Okul, kreş, anaokulu, dershane, kurs, kütüphane, fakülte / derslik binası' },
-  { deger: 'saglik', etiket: 'Sağlık Hizmeti Amaçlı Bina', ornek: 'Hastane, klinik, sağlık ocağı, dispanser, huzurevi, tıbbi laboratuvar' },
-  { deger: 'ceza', etiket: 'Tutukevi / Cezaevi / Islahevi', ornek: 'Ceza ve tutukevleri, nezarethaneler, ıslahevleri' },
-  { deger: 'muayenehane', etiket: 'Doktor / Diş Hekimi Muayenehanesi', aciklama: 'BYKHY’de Büro Binaları kapsamında değerlendirilir.' }
+  { deger: 'egitim', etiket: 'Eğitim Tesisleri' },
+  { deger: 'okul', etiket: 'Okul', grup: 'egitim' },
+  { deger: 'universite', etiket: 'Üniversite', grup: 'egitim' },
+  { deger: 'kres', etiket: 'Kreş', grup: 'egitim' },
+  { deger: 'anaokulu', etiket: 'Anaokulu', grup: 'egitim' },
+  { deger: 'gunduz_bakimevi', etiket: 'Gündüz Bakımevi', grup: 'egitim' },
+  { deger: 'hastane', etiket: 'Hastane', grup: 'saglik' },
+  { deger: 'saglik', etiket: 'Sağlık Kuruluşları' },
+  { deger: 'huzurevi', etiket: 'Huzurevi', grup: 'saglik' },
+  { deger: 'bakim_merkezi', etiket: 'Yaşlı ve Engelli Bakım Merkezleri', grup: 'saglik' },
+  { deger: 'rehabilitasyon', etiket: 'Rehabilitasyon Merkezleri', grup: 'saglik' },
+  { deger: 'gozetim', etiket: 'Bakım ve Gözetim Kuruluşları', grup: 'saglik' },
+  { deger: 'tutukevi', etiket: 'Tutukevi', grup: 'ceza' },
+  { deger: 'ceza', etiket: 'Cezaevi' },
+  { deger: 'islahevi', etiket: 'Islahevi', grup: 'ceza' }
 ]
 // Büro: tür listesi müşterinin Büro kartı metninden (Düzeltme 05) birebir; "Diğer (Kendim Yazacağım)" Düzeltme 02 (kullanıcı, 17 Ekim).
 export const BURO_TURU: Secenek[] = [
@@ -114,20 +136,32 @@ export const BURO_TURU: Secenek[] = [
   { deger: 'b13', etiket: 'Danışmanlık Firması' },
   { deger: 'b14', etiket: 'Doktor ve Diş Hekimi Muayenehanesi' }
 ]
-// Ticaret: BYKHY Md. 13/1'de sayılan yerler (kullanıcı, 10 Ekim: yalnız 1. fıkra). Periyodu değiştirmez; ücretli analiz filtresi için.
+// Ticaret: periyodu değiştirmez; grup yalnız analiz başlıkları için.
 export const TICARET_TURU: Secenek[] = [
   { deger: 'magaza', etiket: 'Mağaza' },
   { deger: 'dukkan', etiket: 'Dükkân' },
   { deger: 'market', etiket: 'Market' },
   { deger: 'supermarket', etiket: 'Süpermarket' },
+  { deger: 'bakkal', etiket: 'Bakkal', grup: 'dukkan' },
+  { deger: 'tuhafiye', etiket: 'Tuhafiye', grup: 'dukkan' },
+  { deger: 'zuccaciye', etiket: 'Züccaciye', grup: 'dukkan' },
+  { deger: 'kirtasiye', etiket: 'Kırtasiye', grup: 'dukkan' },
+  { deger: 'nalbur', etiket: 'Nalbur', grup: 'dukkan' },
+  { deger: 'tekel', etiket: 'Tekel Bayi', grup: 'dukkan' },
+  { deger: 'petshop', etiket: 'Petshop', grup: 'dukkan' },
+  { deger: 'cicekci', etiket: 'Çiçekçi', grup: 'dukkan' },
+  { deger: 'oyuncakci', etiket: 'Oyuncakçı', grup: 'dukkan' },
+  { deger: 'giyim', etiket: 'Giyim ve Ayakkabı Mağazası', grup: 'magaza' },
+  { deger: 'mobilya_elektronik', etiket: 'Mobilya ve Elektronik Eşya Satış Yerleri', grup: 'magaza' },
   { deger: 'toptanci', etiket: 'Toptancı Sitesi' },
-  { deger: 'hal', etiket: 'Sebze, Meyve ve Balık Hali' },
+  { deger: 'hal', etiket: 'Sebze Hali' },
+  { deger: 'meyve_hali', etiket: 'Meyve Hali', grup: 'hal' },
+  { deger: 'balik_hali', etiket: 'Balık Hali', grup: 'hal' },
   { deger: 'et_borsasi', etiket: 'Et Borsası' },
   { deger: 'kapali_carsi', etiket: 'Kapalı Çarşı' },
   { deger: 'pasaj', etiket: 'Pasaj' },
   { deger: 'tamirhane', etiket: 'Tamirhane' },
-  { deger: 'yedek_parca', etiket: 'Yedek Parça ve Malzeme Satış Yeri' },
-  { deger: 'benzeri', etiket: 'Benzeri Yerler', aciklama: 'Gıda, giyim, sağlık ve diğer ihtiyaç maddelerinin toptan veya perakende satıldığı diğer yerler.' }
+  { deger: 'yedek_parca', etiket: 'Yedek Parça ve Malzeme Satış Yerleri' }
 ]
 export const YERLESIM: Secenek[] = [
   { deger: 'tek', etiket: 'Tek bina' },
@@ -136,34 +170,52 @@ export const YERLESIM: Secenek[] = [
 // Toplanma: kullanıcı yükü = alan ÷ katsayı (BYKHY Ek-5/A). "50 kişiden fazla mısınız?" diye doğrudan sorulmaz.
 export type ToplanmaTuru = Secenek & { mod: 'tek' | 'oturma_ayakta' | 'dogrulama'; katsayi?: number; alanTuru?: 'net' | 'brüt' }
 export const TOPLANMA_TURU: ToplanmaTuru[] = [
-  { deger: 'restoran', etiket: 'Restoran / Lokanta / Kantin', ornek: 'Kafeterya, pastane, kahvehane, çay bahçesi gibi benzer kullanımlar', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
-  { deger: 'salon', etiket: 'Sinema / Tiyatro / Düğün Salonu', ornek: 'Konferans ve konser salonları', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
-  { deger: 'bar', etiket: 'Bar / Gece Kulübü / Diskotek', mod: 'oturma_ayakta' },
+  { deger: 'restoran', etiket: 'Restoran', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'lokanta', etiket: 'Lokanta', grup: 'restoran', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'kafe', etiket: 'Kafe', grup: 'restoran', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'kafeterya', etiket: 'Kafeterya', grup: 'restoran', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'kahvehane', etiket: 'Kahvehane', grup: 'restoran', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'dugun_salonu', etiket: 'Düğün Salonu', grup: 'salon', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'salon', etiket: 'Sinema', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'tiyatro', etiket: 'Tiyatro', grup: 'salon', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'konser_salonu', etiket: 'Konser ve Gösteri Salonu', grup: 'salon', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'konferans_salonu', etiket: 'Konferans ve Toplantı Salonu', grup: 'salon', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
   { deger: 'muze', etiket: 'Müze', mod: 'tek', katsayi: 5, alanTuru: 'brüt' },
-  { deger: 'sergi', etiket: 'Sergi Yeri', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
-  { deger: 'ibadet', etiket: 'İbadethane', ornek: 'Cami, kilise, sinagog', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
-  { deger: 'spor', etiket: 'Çok Amaçlı Spor Salonu', mod: 'tek', katsayi: 3, alanTuru: 'brüt' },
-  { deger: 'fitness', etiket: 'Fitness / Aerobik Salonu', mod: 'tek', katsayi: 5, alanTuru: 'brüt' },
-  { deger: 'terminal', etiket: 'Terminal / Gar / Havalimanı / Liman', ornek: 'Yolcu bekleme alanı', mod: 'tek', katsayi: 3, alanTuru: 'net' },
-  { deger: 'stadyum', etiket: 'Stadyum / Tribün / Yüzme Havuzu', mod: 'dogrulama' },
+  { deger: 'sergi', etiket: 'Sergi ve Fuar Alanı', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'ibadet', etiket: 'İbadethane', mod: 'tek', katsayi: 1.5, alanTuru: 'net' },
+  { deger: 'spor', etiket: 'Spor Salonu', mod: 'tek', katsayi: 3, alanTuru: 'brüt' },
+  { deger: 'stadyum', etiket: 'Stadyum', mod: 'dogrulama' },
+  { deger: 'terminal', etiket: 'Terminal', mod: 'tek', katsayi: 3, alanTuru: 'net' },
+  { deger: 'gar', etiket: 'Gar', grup: 'terminal', mod: 'tek', katsayi: 3, alanTuru: 'net' },
+  { deger: 'havaalani', etiket: 'Havaalanı', grup: 'terminal', mod: 'tek', katsayi: 3, alanTuru: 'net' },
   // Düzeltme 02: kendi yazdığı tür eşleşmezse kişi yükü hesaplanmaz, doğrulama gerekir
   { deger: 'kendim', etiket: 'Diğer', aciklama: '(Kendim Yazacağım)', mod: 'dogrulama' }
 ]
+export const END_TURU: Secenek[] = [
+  'Fabrika', 'İmalathane', 'Üretim Tesisi', 'Sanayi Tesisi', 'Atölye', 'CNC ve Torna Atölyesi', 'Metal İşleme ve Makine İmalat Tesisi',
+  'Tekstil Fabrikası', 'İplik ve Dokuma Tesisi', 'Gıda İşleme Tesisi', 'Un ve Yem Fabrikası', 'Mobilya İmalathanesi',
+  'Plastik Enjeksiyon Tesisi', 'Matbaa', 'Boyahane', 'Enerji Üretim Tesisi', 'Rafineri'
+].map((etiket, i) => ({ deger: `e${i + 1}`, etiket }))
 // Endüstri: tehlike sınıfı bilinmiyorsa BYKHY Ek-1 sırasıyla (C → B → A) kontrol edilir.
 export const EK1 = {
   C: { baslik: 'BYKHY Ek-1/C — Yüksek Tehlike Kullanım Alanları', ornekler: ['Döşemelik kumaş ve muşamba fabrikaları', 'Aydınlatma fişeği, havai fişek ve selüloz nitrat fabrikaları', 'Boya, vernik ve renklendirici imalatı', 'Plastik köpük, sünger ve köpük lastik imalathaneleri', 'Yapay kauçuk, reçine ve terebentin imalatı; katran damıtma', 'Talaş fabrikaları, odun yünü imalatı', 'Otobüs ambarı, yüklü kamyon ve vagonlar'] },
   B: { baslik: 'BYKHY Ek-1/B — Orta Tehlike Kullanım Alanları', ornekler: ['Cam ve seramik fabrikaları', 'Kimyasallar: boyama işlemleri, sabun, mum, kibrit fabrikaları, fotoğraf laboratuvarları', 'Otomotiv, elektronik, beyaz eşya, metal levha fabrikaları', 'Gıda: mezbaha, mandıra, fırın, bisküvi, çikolata, şeker, değirmen, bira, alkol damıtma', 'Kâğıt, mukavva fabrikaları, matbaa ve cilthaneler', 'Kablo, plastik döküm, kauçuk eşya, halat fabrikaları', 'Tekstil, deri, halı, giysi, ayakkabı imalathaneleri, iplikhaneler', 'Ahşap işleri, mobilya, yonga levha fabrikaları'] },
   A: { baslik: 'BYKHY Ek-1/A — Düşük Tehlike Kullanım Alanları', ornekler: ['Düşük yangın yüküne ve düşük yanabilirliğe sahip', 'Yangına karşı direnci en az 30 dakika', 'Tek bir yangın kompartımanı 126 m²’den büyük değil (126 m² binanın toplam alanı değildir)', 'Ek-1/B veya Ek-1/C kapsamında değil'] }
 }
-// Depolama (Claude taslağı M16)
+// Depolama
 export const DEPO_TURU: Secenek[] = [
-  { deger: 'depo', etiket: 'Depo / Ambar / Antrepo', ornek: 'Mal, malzeme, ürün deposu; lojistik deposu' },
-  { deger: 'arsiv', etiket: 'Arşiv / Eşya Emanet', ornek: 'Arşiv, eşya emanet ve muhafaza yeri' },
-  { deger: 'silo', etiket: 'Silo / Tank', ornek: 'Silo, tank çiftliği' },
-  { deger: 'ahir', etiket: 'Ahır / Hayvan Barınağı' },
-  { deger: 'otopark', etiket: 'Otopark', ornek: 'Kapalı / açık otopark, bina otoparkı, oto galeri, kapalı taksi durağı' },
-  { deger: 'agir_vasita', etiket: 'Otobüs / Kamyon / Vagon Deposu', ornek: 'Otobüs garajı, kamyon ve vagon deposu' },
-  { deger: 'diger', etiket: 'Diğer / Emin değilim' }
+  { deger: 'depo', etiket: 'Depo' },
+  { deger: 'antrepo', etiket: 'Antrepo', grup: 'depo' },
+  { deger: 'lojistik', etiket: 'Lojistik Deposu', grup: 'depo' },
+  { deger: 'dagitim', etiket: 'Dağıtım Deposu', grup: 'depo' },
+  { deger: 'eticaret', etiket: 'E-Ticaret Ürün Deposu', grup: 'depo' },
+  { deger: 'hammadde', etiket: 'Hammadde ve Mamul Deposu', grup: 'depo' },
+  { deger: 'soguk_hava', etiket: 'Soğuk Hava Deposu', grup: 'depo' },
+  { deger: 'silo', etiket: 'Silo' },
+  { deger: 'arsiv', etiket: 'Arşiv' },
+  { deger: 'otopark', etiket: 'Açık veya Kapalı Otopark' },
+  { deger: 'arac_muhafaza', etiket: 'Araç Muhafaza Alanı', grup: 'otopark' },
+  { deger: 'tank', etiket: 'Tank Depolama Alanı', grup: 'silo' }
 ]
 export const DEPO_MADDE: Secenek[] = [
   { deger: 'yok', etiket: 'Hayır, bulunmuyor' },
@@ -171,11 +223,13 @@ export const DEPO_MADDE: Secenek[] = [
   { deger: 'kismen', etiket: 'Evet, ama yalnızca bir kısmı' },
   { deger: 'bilmiyorum', etiket: 'Bilmiyorum' }
 ]
-// Yüksek tehlikeli yerler (Claude taslağı M17)
+// Yüksek tehlikeli yerler: kart metninin ilk cümlesindeki maddeler (soru maddeyi sorar); örnekler ikinci cümleden
 export const YH_FAALIYET: Secenek[] = [
-  { deger: 'gaz', etiket: 'Parlayıcı gazlar', ornek: 'LPG dolum tesisi, tüp bayii / deposu, otogaz, doğalgaz depolama ve dolumu' },
-  { deger: 'patlayici', etiket: 'Patlayıcı maddeler', ornek: 'Barut, mermi, dinamit, kapsül, fişek imalatı, deposu veya satışı' },
-  { deger: 'sivi', etiket: 'Akaryakıt ve yanıcı sıvılar', ornek: 'Akaryakıt istasyonu, akaryakıt depolama, yanıcı sıvı üretimi veya deposu' }
+  { deger: 'gaz', etiket: 'Parlayıcı ve Patlayıcı Gazlar', ornek: 'LPG tesisleri, yanıcı gaz dolum tesisleri' },
+  { deger: 'patlayici', etiket: 'Patlayıcı Maddeler', ornek: 'Patlayıcı madde depoları' },
+  { deger: 'sivi', etiket: 'Yanıcı Sıvılar' },
+  { deger: 'akaryakit', etiket: 'Akaryakıtlar', grup: 'sivi', ornek: 'Akaryakıt tesisleri' },
+  { deger: 'ozel_madde', etiket: 'Özel Tehlike Oluşturan Maddeler', ornek: 'Kimyasal madde işleme ve depolama alanları' }
 ]
 export const YH_MOD: Secenek[] = [
   { deger: 'faaliyet', etiket: 'Üretiliyor, depolanıyor, dolduruluyor, boşaltılıyor veya satılıyor' },
@@ -345,12 +399,12 @@ export const YARDIM = {
 // Alt türün başlıklarda geçen kısa adı: seçenek etiketinden farklı olması gerekenler.
 export const KULLANIM_KISA_AD: Record<string, string> = {
   mustakil: 'Müstakil konut', apartman: 'Apartman', site: 'Site', yurt: 'Yurt', diger: '',
-  egitim: 'Eğitim yapısı', saglik: 'Sağlık yapısı', ceza: 'Ceza infaz kurumu',
-  restoran: 'Restoran / kafe', salon: 'Salon', bar: 'Bar / gece kulübü', muze: 'Müze', sergi: 'Sergi alanı', ibadet: 'İbadethane',
+  egitim: 'Eğitim yapısı', saglik: 'Sağlık yapısı',
+  restoran: 'Restoran', salon: 'Salon', bar: 'Bar / gece kulübü', muze: 'Müze', sergi: 'Sergi alanı', ibadet: 'İbadethane',
   spor: 'Spor salonu', fitness: 'Fitness salonu', terminal: 'Terminal', stadyum: 'Stadyum / tribün',
-  depo: 'Depo', arsiv: 'Arşiv', silo: 'Silo / tank', ahir: 'Ahır', otopark: 'Otopark', agir_vasita: 'Araç deposu',
-  hal: 'Hal', toptanci: 'Toptancı sitesi', kapali_carsi: 'Kapalı çarşı', yedek_parca: 'Yedek parça satış yeri', benzeri: 'Ticari alan',
-  gaz: 'Parlayıcı gaz tesisi', patlayici: 'Patlayıcı madde tesisi', sivi: 'Akaryakıt tesisi'
+  depo: 'Depo', arsiv: 'Arşiv', silo: 'Silo', ahir: 'Ahır', otopark: 'Otopark', agir_vasita: 'Araç deposu',
+  toptanci: 'Toptancı sitesi', kapali_carsi: 'Kapalı çarşı', yedek_parca: 'Yedek parça satış yeri', benzeri: 'Ticari alan',
+  gaz: 'Parlayıcı ve patlayıcı gaz tesisi', patlayici: 'Patlayıcı madde tesisi', sivi: 'Yanıcı sıvı tesisi', akaryakit: 'Akaryakıt tesisi'
 }
 // Alt türü sorulmayan ya da alt türüne özel başlık yazılmamış kullanımlarda sınıfın kısa adı kullanılır.
 export const SINIF_KISA_AD: Record<SinifKod, string> = {

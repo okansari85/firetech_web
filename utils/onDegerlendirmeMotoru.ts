@@ -3,7 +3,7 @@
 // hesapla(): kullanımların ve yapının periyodunu hesaplar (cevaplar eksikken de anlık çalışır).
 import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
-  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
+  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, END_TURU, turGrubu, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
   DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
   KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, DIGER_YAZ, BURO_TURU, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
@@ -49,7 +49,7 @@ const cevapliMi = (q: Soru, v: any) => q.tip === 'bilgi' ? false : q.tip === 'me
 // Değerlendirilen yer birden fazla yapıdan oluşabiliyor mu (konutta site, kurumsalda kampüs / yerleşke; konaklamada tatil köyü,
 // kamping, pansiyon, öğrenci yurdu ve diğer benzeri tesis — eski ekran dokümanı 4.4.2 / 4.5.2 / 4.6.2 / 4.7.2 / 4.8.2)?
 const coklYapiMi = (esas: SinifKod, c: Cevaplar) => (esas === 'konut' && c.konutTuru === 'site') || (esas === 'kurumsal' && c.yerlesim === 'yerleske') ||
-  (esas === 'konaklama' && ['tatil_koyu', 'kamping', 'pansiyon', 'yurt', 'diger'].includes(c.konaklamaTuru))
+  (esas === 'konaklama' && ['tatil_koyu', 'kamping', 'pansiyon', 'yurt', 'diger'].includes(turGrubu(KONAKLAMA_TURU, c.konaklamaTuru)))
 
 // Kullanıcı yükü: BYKHY'de yuvarlama kuralı yok; 50 kişi eşiğinde güvenli tarafta kalmak için yukarı yuvarlanır (kullanıcı kararı,
 // 11 Ekim: 74 m² ÷ 1,5 = 49,3 → 50). Kayan nokta artığı (ör. 50,0000001) yüzünden fazladan bir kişi eklenmesin diye küçük tolerans.
@@ -118,11 +118,11 @@ export function akis(d: Degerlendirme): Soru[] {
   const yapiSorulari = (siniflar: SinifKod[]) => {
     if (siniflar.includes('konut')) need({ id: 'yukseklik', tip: 'secim', grup: 'yapi', kisaAd: 'Yapı yüksekliği', yardim: 'yukseklik', baslik: 'Yapınızın yapı yüksekliği hangi aralıkta?', aciklama: 'Bu değerlendirmede kat sayısı değil, yapı yüksekliği esas alınır.', secenekler: YUKSEKLIK })
     if (siniflar.includes('konaklama')) {
-      const kamping = c.konaklamaTuru === 'kamping'
+      const kamping = turGrubu(KONAKLAMA_TURU, c.konaklamaTuru) === 'kamping'
       need({ id: 'oda', tip: 'secim', grup: 'yapi', kisaAd: kamping ? 'Konaklama birimi sayısı' : 'Oda sayısı', yardim: 'oda',
         baslik: kamping ? 'Toplam yatılı konaklama birimi sayısı kaçtır?' : 'Konaklama amacıyla kullanılan toplam oda sayısı kaçtır?',
         aciklama: kamping ? 'Bungalow, çadır, karavan / motokaravan yeri ve benzeri birimler birlikte sayılır.' : 'Günlük doluluk dikkate alınmaz. Konaklama için ayrılmış toplam oda sayısını esas alın.',
-        secenekler: c.konaklamaTuru === 'yurt' ? [...ODA, ODA_BELIRSIZ] : ODA })
+        secenekler: turGrubu(KONAKLAMA_TURU, c.konaklamaTuru) === 'yurt' ? [...ODA, ODA_BELIRSIZ] : ODA })
     }
     if (siniflar.some(s => ALAN_SINIFLARI.includes(s))) need({ id: 'alan', tip: 'secim', grup: 'yapi', kisaAd: 'Yapı inşaat alanı', yardim: 'alan', baslik: 'Yapınızın toplam yapı inşaat alanı kaç m²?', aciklama: 'Yalnızca kullandığınız bölümün değil, yapının bütün katlarını kapsayan toplam alan.', secenekler: ALAN })
     // Ticaret: alan bilinmiyorsa tanım gösterilip m² istenir; girilen değer yapının alanı olarak bütün kullanımlara uygulanır.
@@ -133,6 +133,7 @@ export function akis(d: Degerlendirme): Soru[] {
   // Endüstri (ana kullanım p = '', diğer kullanım p = 'd_'): tehlike sınıfı → bilinmiyorsa onaylı projeden → olmazsa Ek-1 C → B → A
   // (Endüstri kilitli akışlar, Ekran 6 / 6.4 / 6.4.1).
   const endustriSorulari = (p: string, grup: Soru['grup']) => {
+    if (!p) need({ id: 'endTuru', tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Tesis türü', baslik: 'Endüstriyel tesisinizin türü nedir?', secenekler: [...END_TURU, DIGER_YAZ], digerYaz: true })
     const ad = p ? 'Üretim bölümünün' : 'Tesisinizin'
     need({ id: `${p}endTehlike`, tip: 'secim', grup, sinif: 'endustri', kisaAd: p ? 'Üretim tehlike sınıfı' : 'Tehlike sınıfı', baslik: `${ad} tehlike sınıfını biliyor musunuz?`, aciklama: 'Tehlike sınıfı, tesisinizde yürütülen faaliyetlere ve kullanılan maddelerin özelliklerine göre belirlenir. Biliyorsanız tehlike sınıfınızı seçin. Emin değilseniz “Bilmiyorum” seçeneğiyle devam edebilirsiniz.', secenekler: TEHLIKE })
     if (c[`${p}endTehlike`] !== 'bilmiyorum') return
@@ -177,7 +178,6 @@ export function akis(d: Degerlendirme): Soru[] {
       need({ id: 'konaklamaTuru', tip: 'secim', grup: 'yapi', sinif: 'konaklama', kisaAd: 'Konaklama türü', baslik: 'Konaklama tesisinizin türü nedir?', secenekler: [...KONAKLAMA_TURU, DIGER_YAZ], digerYaz: true })
     } else if (e === 'kurumsal') {
       need({ id: 'kurumsalTuru', tip: 'secim', grup: 'yapi', sinif: 'kurumsal', kisaAd: 'Kurumsal türü', baslik: 'Kurumsal yapınızın türü nedir?', aciklama: 'Sınıflandırmada kurumun adı değil, yapının fiilî kullanım amacı esas alınır.', secenekler: [...KURUMSAL_TURU, DIGER_YAZ], digerYaz: true })
-      if (c.kurumsalTuru === 'muayenehane') need({ id: 'yonlendirMuayenehane', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Muayenehane Büro Binaları kapsamındadır', aciklama: 'Doktor veya diş hekimi muayenehanesi, adı sağlık faaliyeti olsa da BYKHY Madde 12’ye göre Büro Binaları kapsamında değerlendirilir.', eylemler: [{ etiket: 'Büro Binaları olarak devam et', tip: 'esas', sinif: 'buro', ek: { buroTuru: 'b14' } }] })
       need({ id: 'yerlesim', tip: 'secim', grup: 'yapi', kisaAd: 'Yerleşim', baslik: 'Değerlendirdiğiniz yapı nerede?', secenekler: YERLESIM })
       if (c.yerlesim === 'yerleske') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen yapı', baslik: 'Hangi yapıyı değerlendiriyorsunuz?', aciklama: 'Kampüs veya yerleşkedeki her ayrı yapı kendi fiilî kullanımına göre değerlendirilir. Yapı adı isteğe bağlıdır.' })
     } else if (e === 'buro') {
@@ -317,9 +317,8 @@ function depolamaSonucu(c: Cevaplar, p: string): SinifCikti {
   if (madde === 'esas') return p
     ? { periyot: PERIYOT.yuksekTehlike, durum: 'gecerli', belirleyici: 'Esas olarak parlayıcı / patlayıcı madde veya akaryakıt depolanan bölüm: yüksek tehlikeli yer, sınır olmaksızın (BYKHY Md. 17)' }
     : EKSIK
-  const tehlike = c[`${p}depoTehlike`], tur = c[`${p}depoTuru`]
+  const tehlike = c[`${p}depoTehlike`], tur = turGrubu(DEPO_TURU, c[`${p}depoTuru`])
   const r: SinifCikti = tehlike === 'bilmiyorum' && tur === 'otopark' ? tehlikeyeGore('orta', 'Ek-1/B “otoparklar”')
-    : tehlike === 'bilmiyorum' && tur === 'agir_vasita' ? tehlikeyeGore('yuksek', 'Ek-1/C otobüs / kamyon / vagon depoları')
     : soruyla(tehlikeyeGore(tehlike), `${p}depoTehlike`)
   if (r.durum !== 'gecerli' || r.periyot === PERIYOT.tehlike.yuksek || !['kismen', 'bilmiyorum'].includes(madde)) return r
   const neden = madde === 'kismen' ? 'tehlikeli madde bulunduğu için' : 'tehlikeli madde bulunup bulunmadığı bilinmediği için'
@@ -336,7 +335,7 @@ function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean): SinifCikti {
     case 'konut': return soruyla(bandaGore(c.yukseklik, PERIYOT.yukseklik, YUKSEKLIK, 'Yapı yüksekliği'), 'yukseklik')
     case 'konaklama':
       if (c.oda === 'belirsiz') return { periyot: null, durum: 'inceleme', belirleyici: 'Koğuş düzeni / oda sayısı belirsiz; yatak veya kişi sayısı oda sayısına çevrilmez', soru: 'oda' }
-      return soruyla(bandaGore(c.oda, PERIYOT.oda, ODA, c.konaklamaTuru === 'kamping' ? 'Konaklama birimi sayısı' : 'Oda sayısı'), 'oda')
+      return soruyla(bandaGore(c.oda, PERIYOT.oda, ODA, turGrubu(KONAKLAMA_TURU, c.konaklamaTuru) === 'kamping' ? 'Konaklama birimi sayısı' : 'Oda sayısı'), 'oda')
     case 'ticaret': return soruyla(alanSonucu(c, true), 'alan')
     case 'kurumsal': case 'buro': return soruyla(alanSonucu(c, false), 'alan')
     case 'toplanma': {
@@ -379,6 +378,7 @@ const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; 
   kurumsal: { id: 'kurumsalTuru', secenekler: KURUMSAL_TURU },
   buro: { id: 'buroTuru', secenekler: BURO_TURU },
   ticaret: { id: 'ticaretTuru', secenekler: TICARET_TURU },
+  endustri: { id: 'endTuru', secenekler: END_TURU },
   toplanma: { id: 'toplanmaTuru', secenekler: TOPLANMA_TURU, digerde: true },
   depolama: { id: 'depoTuru', secenekler: DEPO_TURU, digerde: true },
   yuksek: { id: 'yhFaaliyet', secenekler: YH_FAALIYET }
@@ -394,7 +394,7 @@ function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { baslikl
     const yazi: string | undefined = (soru && c[`${k.iliski === 'esas' ? soru.id : `d_${soru.id}`}_yazi`]) || (k.iliski === 'esas' ? c.yaziAd : undefined)
     const altTur = s === 'konut' && k.iliski === 'esas' && c.konutTuru !== 'site' ? KONUT_ALT_TURU[c.konutTuru as 'mustakil' | 'apartman']?.find(o => o.deger === c.konutAltTuru)?.etiket : undefined
     const ad = yazi || altTur || (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
-    const liste = (tur && ANALIZ_BASLIKLARI[s].tur?.[tur]) || ANALIZ_BASLIKLARI[s].varsayilan
+    const liste = (tur && ANALIZ_BASLIKLARI[s].tur?.[turGrubu(soru!.secenekler, tur)]) || ANALIZ_BASLIKLARI[s].varsayilan
     return { ad, liste, ayni: k.iliski === 'ayni' }
   })
   const ortak: string[] = []

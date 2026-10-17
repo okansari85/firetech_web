@@ -50,7 +50,7 @@ const elleTur = ref('')
 watch(yazi, () => { elleTur.value = '' })
 const tanimliTurler = computed(() => (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
 const elleSec = () => emit('cevap', elleTur.value, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'elle' })
-const TUR_ID: Partial<Record<string, string>> = { konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' }
+const TUR_ID: Partial<Record<string, string>> = { konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', endustri: 'endTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' }
 const oneriSec = (e: Eslesme) => {
   const ad = yaziTemiz.value
   if (e.sinif === props.soru.sinif) return emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: 'tur' })

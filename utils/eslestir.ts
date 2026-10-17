@@ -2,14 +2,12 @@
 // Sözlük yalnız müşteri metinlerinden kurulur: kullanım sınıfı kart açıklamaları (Düzeltme 05), Düzeltme 02 örnekleri ve
 // mevcut alt tür seçenekleri. Yeni sınıf üretmez; adından süreç, tehlikeli madde vb. varsaymaz.
 import { kullanimSiniflari } from '~/data/kullanimSiniflari'
-import { DIGER_ORNEKLERI, BURO_TURU, KONAKLAMA_TURU, KURUMSAL_TURU, TICARET_TURU, TOPLANMA_TURU, DEPO_TURU, YH_FAALIYET, SINIFLAR, type SinifKod, type Secenek } from '~/data/onDegerlendirme'
+import { DIGER_ORNEKLERI, BURO_TURU, KONAKLAMA_TURU, KURUMSAL_TURU, TICARET_TURU, TOPLANMA_TURU, DEPO_TURU, YH_FAALIYET, END_TURU, SINIFLAR, type SinifKod, type Secenek } from '~/data/onDegerlendirme'
 
 export type Eslesme = { sinif: SinifKod; tur?: string; terim: string }
 
 const KART_SINIF: Record<string, SinifKod> = { residential: 'konut', lodging: 'konaklama', institutional: 'kurumsal', office: 'buro', commercial: 'ticaret', industrial: 'endustri', assembly: 'toplanma', storage: 'depolama', high_hazard: 'yuksek' }
-// Kurumsal'daki "Muayenehane" seçeneği yalnız Büro'ya yönlendirir (BYKHY md. 12); eşleştirmede kategori sayılmaz
-export const YONLENDIRME_SECENEGI = new Set(['muayenehane'])
-export const ALT_TURLER: Partial<Record<SinifKod, Secenek[]>> = { konaklama: KONAKLAMA_TURU, kurumsal: KURUMSAL_TURU.filter(o => !YONLENDIRME_SECENEGI.has(o.deger)), buro: BURO_TURU, ticaret: TICARET_TURU, toplanma: TOPLANMA_TURU, depolama: DEPO_TURU, yuksek: YH_FAALIYET }
+export const ALT_TURLER: Partial<Record<SinifKod, Secenek[]>> = { konaklama: KONAKLAMA_TURU, kurumsal: KURUMSAL_TURU, endustri: END_TURU, buro: BURO_TURU, ticaret: TICARET_TURU, toplanma: TOPLANMA_TURU, depolama: DEPO_TURU, yuksek: YH_FAALIYET }
 
 export const sadelestir = (s: string) => s.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]+/g, ' ').trim()
 const parcala = (s: string) => s.split(/,|;| ve | ile | veya |\//).map(x => sadelestir(x.replace(/benzeri.*$/i, ''))).filter(x => x.length >= 3)

@@ -392,6 +392,10 @@ export const METIN = {
   karma: 'Aynı yapıda birden fazla bağımsız kullanım bulunduğundan, YGU EK-1 uyarınca kontrol periyodu düşük olan kullanımın süresi uygulanır.',
   ayriYapi: 'Ayrı yapıdaki kullanımlar bu yapının periyodunu değiştirmez; kendi yapıları olarak ayrıca değerlendirilir.',
   yardimci: 'Yardımcı / ortak alanlar ayrı kullanım sayılmaz; ana kullanımla birlikte değerlendirilir.',
+  // Başlık listesinin üstü (müşteri örneği: "YAPINIZA ÖZEL ANALİZ BAŞLIKLARI" / "Apartman + Dönerci Yangın Güvenliği").
+  analizEtiket: 'Yapınıza Özel Analiz Başlıkları',
+  analizAdiSonu: 'Yangın Güvenliği',
+  analizAdiYedek: 'Yapınızın Yangın Güvenliği',
   // Kullanım bilgisi yokken (yedek) gösterilen genel başlıklar; normalde ANALIZ_BASLIKLARI kullanılır.
   basliklar: ['Kaçış ve Tahliye', 'Yangın Kapıları ve Bölmeleri', 'Acil Durum Aydınlatma ve Yönlendirme', 'Algılama ve Alarm Sistemleri', 'Söndürme Sistemleri'],
   degerCumlesi: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini görün, eksikleri önceden belirleyin ve periyodik kontrole hazırlanın.',

@@ -97,7 +97,9 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
 
     <!-- Detaylı analiz -->
     <div class="card cta">
-      <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><AppIcon name="check" />{{ b }}</li></ul>
+      <p class="analiz-etiket">{{ METIN.analizEtiket }}</p>
+      <h3 class="analiz-adi">{{ sonuc.analizAdi }}</h3>
+      <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
       <p class="deger">{{ METIN.degerCumlesi }}</p>
       <div class="dugmeler">
         <NuxtLink to="/giris" class="btn gold-btn">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></NuxtLink>
@@ -143,9 +145,24 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
 .tarih input { max-width: 220px; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; }
 .sonraki { margin-top: 10px; }
 .sonraki strong { font-family: var(--font-head); font-size: 20px; color: var(--gold); }
-.basliklar { margin: 0 0 14px; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 18px; }
-.basliklar li { display: flex; align-items: center; gap: 8px; font-family: var(--font-head); font-weight: 700; color: var(--navy); }
-.basliklar svg { width: 18px; height: 18px; color: var(--gold); flex: none; }
+.analiz-etiket { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--muted, #787878); }
+.analiz-adi { margin: 4px 0 14px; font-family: var(--font-head); font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--navy); text-transform: none; }
+.basliklar { margin: 0 0 16px; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* Kutular: solda ikon, yanında başlık */
+.basliklar li {
+  display: flex; align-items: center; gap: 12px; min-height: 64px;
+  padding: 10px 14px 10px 10px; border: 1px solid #e6e1d6; border-radius: 12px;
+  background: linear-gradient(180deg, #fff 0%, #fbf8f2 100%);
+  font-family: var(--font-head); font-size: 15.5px; font-weight: 700; color: var(--navy); line-height: 1.25;
+  transition: border-color .15s, box-shadow .15s;
+}
+.basliklar li:hover { border-color: var(--gold); box-shadow: 0 4px 14px -8px rgba(156, 112, 32, .45); }
+.b-ikon {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 10px;
+  background: var(--navy); color: var(--gold);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.b-ikon svg { width: 24px; height: 24px; }
 .deger { font-weight: 500; }
 .dugmeler { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
 .ico { width: 20px; height: 20px; }

@@ -239,6 +239,8 @@ export type Sonuc = {
   surucu: KullanimSonucu[]
   notlar: string[]
   basliklar: string[]
+  // Başlık listesinin üstündeki ad, ör. "Apartman + Restoran / Kafe Yangın Güvenliği"
+  analizAdi: string
 }
 
 const bandaGore = (deger: any, tablo: Record<string, number | null>, etiketler: Secenek[], adi: string): Pick<KullanimSonucu, 'periyot' | 'durum' | 'belirleyici'> => {
@@ -353,9 +355,9 @@ const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; 
   depolama: { id: 'depoTuru', secenekler: DEPO_TURU, digerde: true },
   yuksek: { id: 'yhFaaliyet', secenekler: YH_FAALIYET }
 }
-function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): string[] {
+function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { basliklar: string[]; ad: string } {
   const birlikte = kullanimlar.filter(k => k.sinif && (k.iliski === 'esas' || k.iliski === 'ayni' || k.iliski === 'yardimci'))
-  if (!birlikte.length) return METIN.basliklar
+  if (!birlikte.length) return { basliklar: METIN.basliklar, ad: METIN.analizAdiYedek }
   const parcalar = birlikte.map((k) => {
     const s = k.sinif!
     const soru = TUR_SORUSU[s]
@@ -382,7 +384,10 @@ function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): string[] 
   }
   // Ekranda kullanım sırasıyla (esas önce) dursun.
   const sirali = parcalar.flatMap(p => p.liste.filter(b => kullanimBasliklari.includes(b)))
-  return [...new Set([...sirali, ...ortak])]
+  // Başlıkta her kelime büyük harfle başlar: "ticari alan" → "Ticari Alan"
+  const buyukHarf = (t: string) => t.split(' ').map(w => w.charAt(0).toLocaleUpperCase('tr') + w.slice(1)).join(' ')
+  const ad = `${[...new Set(parcalar.map(p => buyukHarf(p.ad)))].join(' + ')} ${METIN.analizAdiSonu}`
+  return { basliklar: [...new Set([...sirali, ...ortak])], ad }
 }
 
 export function hesapla(d: Degerlendirme): Sonuc {
@@ -415,5 +420,5 @@ export function hesapla(d: Degerlendirme): Sonuc {
   if (kullanimlar.some(k => k.durum === 'ana_parcasi')) notlar.push(METIN.yardimci)
   if (kullanimlar.some(k => k.durum === 'ayri_yapi')) notlar.push(METIN.ayriYapi)
   if (genel === 'tanimsiz') notlar.push(METIN.tanimsizNot)
-  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, basliklar: analizBasliklari(c, kullanimlar) }
+  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, ...(({ basliklar, ad }) => ({ basliklar, analizAdi: ad }))(analizBasliklari(c, kullanimlar)) }
 }

@@ -146,7 +146,6 @@ export const TOPLANMA_TURU: ToplanmaTuru[] = [
   { deger: 'fitness', etiket: 'Fitness / Aerobik Salonu', mod: 'tek', katsayi: 5, alanTuru: 'brüt' },
   { deger: 'terminal', etiket: 'Terminal / Gar / Havalimanı / Liman', ornek: 'Yolcu bekleme alanı', mod: 'tek', katsayi: 3, alanTuru: 'net' },
   { deger: 'stadyum', etiket: 'Stadyum / Tribün / Yüzme Havuzu', mod: 'dogrulama' },
-  { deger: 'diger', etiket: 'Diğer / Benzeri Toplanma Kullanımı', mod: 'dogrulama' },
   // Düzeltme 02: kendi yazdığı tür eşleşmezse kişi yükü hesaplanmaz, doğrulama gerekir
   { deger: 'kendim', etiket: 'Diğer', aciklama: '(Kendim Yazacağım)', mod: 'dogrulama' }
 ]

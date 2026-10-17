@@ -7,7 +7,9 @@ import { DIGER_ORNEKLERI, BURO_TURU, KONAKLAMA_TURU, KURUMSAL_TURU, TICARET_TURU
 export type Eslesme = { sinif: SinifKod; tur?: string; terim: string }
 
 const KART_SINIF: Record<string, SinifKod> = { residential: 'konut', lodging: 'konaklama', institutional: 'kurumsal', office: 'buro', commercial: 'ticaret', industrial: 'endustri', assembly: 'toplanma', storage: 'depolama', high_hazard: 'yuksek' }
-export const ALT_TURLER: Partial<Record<SinifKod, Secenek[]>> = { konaklama: KONAKLAMA_TURU, kurumsal: KURUMSAL_TURU, buro: BURO_TURU, ticaret: TICARET_TURU, toplanma: TOPLANMA_TURU, depolama: DEPO_TURU, yuksek: YH_FAALIYET }
+// Kurumsal'daki "Muayenehane" seçeneği yalnız Büro'ya yönlendirir (BYKHY md. 12); eşleştirmede kategori sayılmaz
+export const YONLENDIRME_SECENEGI = new Set(['muayenehane'])
+export const ALT_TURLER: Partial<Record<SinifKod, Secenek[]>> = { konaklama: KONAKLAMA_TURU, kurumsal: KURUMSAL_TURU.filter(o => !YONLENDIRME_SECENEGI.has(o.deger)), buro: BURO_TURU, ticaret: TICARET_TURU, toplanma: TOPLANMA_TURU, depolama: DEPO_TURU, yuksek: YH_FAALIYET }
 
 export const sadelestir = (s: string) => s.toLocaleLowerCase('tr').replace(/[^a-zçğıöşü0-9]+/g, ' ').trim()
 const parcala = (s: string) => s.split(/,|;| ve | ile | veya |\//).map(x => sadelestir(x.replace(/benzeri.*$/i, ''))).filter(x => x.length >= 3)
@@ -31,12 +33,18 @@ for (const [sinif, liste] of Object.entries(ALT_TURLER) as [SinifKod, Secenek[]]
 // Sınıf eşleşip alt tür bulunamazsa varsayılan alt tür (kullanıcı, 17 Ekim: "tuhafiye → dükkân"); adında "mağaza" geçen → Mağaza
 const VARSAYILAN_TUR: Partial<Record<SinifKod, (y: string) => string>> = { ticaret: y => (y.includes('mağaza') ? 'magaza' : 'dukkan') }
 
+// Kesin kurallar (kullanıcı, 17 Ekim: "muayenehane ise direkt büro, klinik kurumsal binaya girmesi lazım, net"):
+// yazıda geçiyorsa yalnız bu eşleşme önerilir
+const KESIN: [string, SinifKod, string][] = [['muayene', 'buro', 'b14'], ['klini', 'kurumsal', 'saglik']]
+
 // Tek başına ayırt etmeyen genel kelimeler (ör. "merkezi", "deposu"): yalnız bunlar ortaksa eşleşme sayılmaz.
 const GENEL = new Set(['merkezi', 'merkez', 'tesisi', 'tesis', 'tesisler', 'tesisleri', 'deposu', 'depo', 'salonu', 'salon', 'binası', 'bina', 'binalar', 'alanı', 'alan', 'alanları', 'yeri', 'yerleri', 'yerler', 'ofisi', 'ofis', 'atölyesi', 'atölye', 'fabrikası', 'mağazası', 'satış', 'yapılar', 'yapı', 'amaçlı', 'kullanılan', 'hizmet', 'genel', 'diğer', 'evleri', 'evler'])
 // Terim yazının içinde geçiyorsa (ya da yazı terimin başı ise) eşleşir. Alt türe bağlı eşleşmeler önce gelir.
 export function eslestir(yazi: string): Eslesme[] {
   const y = sadelestir(yazi)
   if (y.length < 3) return []
+  const kesin = KESIN.find(([k]) => y.includes(k))
+  if (kesin) return [{ sinif: kesin[1], tur: kesin[2], terim: kesin[0] }]
   const bulunan: Eslesme[] = []
   const yk = y.split(' ').filter(w => w.length >= 3 && !GENEL.has(w))
   // Kelime eşleşmesi: tam kelime; 5+ harfli terimlerde ek alabilir ("tuhafiye" → "tuhafiyeci"); kısa terimler yalnız tam

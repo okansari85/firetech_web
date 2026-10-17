@@ -4,10 +4,10 @@
 // yönlendirilir (kullanıcı, 17 Ekim: "başka bir sınıfa ait bir şey ise ilgili sınıfa at"). Hata / kota → null (listeden seçer).
 import { kullanimSiniflari } from '~/data/kullanimSiniflari'
 import type { Secenek, SinifKod } from '~/data/onDegerlendirme'
-import { ALT_TURLER } from '~/utils/eslestir'
+import { ALT_TURLER, YONLENDIRME_SECENEGI } from '~/utils/eslestir'
 
 const KART_SINIF: Record<string, SinifKod> = { residential: 'konut', lodging: 'konaklama', institutional: 'kurumsal', office: 'buro', commercial: 'ticaret', industrial: 'endustri', assembly: 'toplanma', storage: 'depolama', high_hazard: 'yuksek' }
-const sade = (L: Secenek[]) => L.filter(o => o.deger !== 'kendim').map(o => ({ deger: o.deger, etiket: o.etiket, ...(o.ornek ? { ornek: o.ornek } : {}) }))
+const sade = (L: Secenek[]) => L.filter(o => o.deger !== 'kendim' && !YONLENDIRME_SECENEGI.has(o.deger)).map(o => ({ deger: o.deger, etiket: o.etiket, ...(o.ornek ? { ornek: o.ornek } : {}) }))
 
 export type YzSonuc = { sinif: SinifKod; tur?: string } | null
 const onbellek = new Map<string, YzSonuc>()

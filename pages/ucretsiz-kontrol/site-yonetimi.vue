@@ -40,7 +40,7 @@ const cevaplanan = computed(() => {
   if (!k?.sinif || k.konum === 'acik') return []
   return akis(kayitDegerlendirme(k)).filter(q => q.id !== soru.value?.id && q.tip !== 'bilgi')
 })
-const cevap = (v: any) => { if (aktif.value && soru.value) alan({ c: { ...aktif.value.c, [soru.value.id]: v } }) }
+const cevap = (v: any, ek?: Record<string, any>) => { if (aktif.value && soru.value) alan({ c: { ...aktif.value.c, ...(ek || {}), [soru.value.id]: v } }) }
 const eylem = (e: Eylem) => {
   if (e.tip === 'esas' && e.sinif) alan({ sinif: e.sinif, c: { ...(e.ek || {}) } })
   else if (e.tip === 'sinif-sec') alan({ sinif: undefined, c: {} })
@@ -50,7 +50,7 @@ const olcutDegistir = (id: string) => {
   if (!k) return
   const ids = akis(kayitDegerlendirme(k)).map(q => q.id)
   const c = { ...k.c }
-  for (const x of ids.slice(ids.indexOf(id))) delete c[x]
+  for (const x of ids.slice(ids.indexOf(id))) { delete c[x]; delete c[`${x}_yazi`]; delete c[`${x}_eslesme`] }
   alan({ c })
 }
 const duzenle = () => alan({ konum: undefined, bagli: undefined, sinif: undefined, c: {} })
@@ -172,7 +172,7 @@ const yeni = () => { sy.sifirla() }
 
           <!-- Sınıfın ölçüt soruları (yükseklik, alan, oda, tehlike…) -->
           <ul v-if="cevaplanan.length" class="olcutler">
-            <li v-for="q in cevaplanan" :key="q.id"><span>{{ q.kisaAd }}</span><span>{{ cevapEtiketi(q, aktif.c[q.id]) }}</span><button type="button" class="link" @click="olcutDegistir(q.id)">Değiştir</button></li>
+            <li v-for="q in cevaplanan" :key="q.id"><span>{{ q.kisaAd }}</span><span>{{ cevapEtiketi(q, aktif.c[q.id], aktif.c) }}</span><button type="button" class="link" @click="olcutDegistir(q.id)">Değiştir</button></li>
           </ul>
           <KontrolSoruKarti v-if="soru" :key="`${aktif.id}-${soru.id}`" :soru="soru" :deger="aktif.c[soru.id]" class="ic-soru" @cevap="cevap" @eylem="eylem" />
 

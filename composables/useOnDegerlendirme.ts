@@ -1,6 +1,6 @@
 // Ücretsiz ön değerlendirmenin durumu (sayfalar arası paylaşılır; tarayıcı oturumunda saklanır).
 import type { SinifKod } from '~/data/onDegerlendirme'
-import { akis, hesapla, mevcutSoru, type Degerlendirme, type Eylem } from '~/utils/onDegerlendirmeMotoru'
+import { akis, hesapla, mevcutSoru, type Degerlendirme, type Eylem, type Cevaplar } from '~/utils/onDegerlendirmeMotoru'
 
 const ANAHTAR = 'firetech_on_degerlendirme'
 
@@ -25,8 +25,9 @@ export const useOnDegerlendirme = () => {
   const tamam = computed(() => !!d.value.esas && !mevcut.value)
 
   const baslat = (esas: SinifKod) => { d.value = { esas, c: {} }; kaydet() }
-  const cevapla = (id: string, deger: any) => {
-    const c = { ...d.value.c, [id]: deger }
+  // ek: aynı soruya bağlı ek cevaplar (ör. Düzeltme 02 yazılan ad: `${id}_yazi`, `${id}_eslesme`)
+  const cevapla = (id: string, deger: any, ek?: Cevaplar) => {
+    const c = { ...d.value.c, ...(ek || {}), [id]: deger }
     if (id === 'digerVar' && deger === 'hayir') delete c.digerler
     d.value = { ...d.value, c }
     kaydet()
@@ -36,7 +37,7 @@ export const useOnDegerlendirme = () => {
     const ids = sorular.value.map(q => q.id)
     const i = ids.indexOf(id)
     const c = { ...d.value.c }
-    for (const x of i >= 0 ? ids.slice(i) : [id]) delete c[x]
+    for (const x of i >= 0 ? ids.slice(i) : [id]) { delete c[x]; delete c[`${x}_yazi`]; delete c[`${x}_eslesme`] }
     d.value = { ...d.value, c }
     kaydet()
   }

@@ -17,6 +17,8 @@ const paths: Record<string, string> = {
   search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M21 21l-5-5',
   scale: 'M12 3v18 M5 21h14 M4 7h16 M4 7l-3 7a4 4 0 0 0 6 0z M20 7l-3 7a4 4 0 0 0 6 0z',
   alert: 'M12 3l10 18H2z M12 10v5 M12 18v.5',
+  kalem: 'M4 20h4L19 9l-4-4L4 16z M14 6l4 4',
+  isilti: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z',
   // Ön değerlendirme sonucundaki analiz başlığı ikonları (utils/baslikIkonu.ts)
   kacis: 'M14 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z M8 21l3-6 3 2v4 M6 12l3-3 4 1 3 3h3 M11 15l1-5',
   kapi: 'M5 21V3h12v18 M3 21h18 M14 12h.5 M17 3l3 2v16',

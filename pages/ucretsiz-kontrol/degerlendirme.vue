@@ -20,7 +20,7 @@ const adim = computed(() => (tamam.value ? adimlar.value.length - 1 : mevcut.val
 const kaydir = () => nextTick(() => {
   if (import.meta.client && window.innerWidth < 1100) soruAlani.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 })
-const cevap = (v: any) => { if (mevcut.value) { od.cevapla(mevcut.value.id, v); kaydir() } }
+const cevap = (v: any, ek?: Record<string, any>) => { if (mevcut.value) { od.cevapla(mevcut.value.id, v, ek); kaydir() } }
 const eylem = (e: Eylem) => {
   if (e.tip === 'sinif-sec') { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') } else if (e.tip === 'sayfa' && e.urun) analiziBaslat(e.urun)
   else { od.eylem(e); kaydir() }
@@ -63,7 +63,7 @@ const yeni = () => { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi
             <ul>
               <li v-for="q in cevaplananlar" :key="q.id">
                 <span class="c-ad">{{ q.kisaAd }}</span>
-                <span class="c-deger">{{ cevapEtiketi(q, d.c[q.id]) }}</span>
+                <span class="c-deger">{{ cevapEtiketi(q, d.c[q.id], d.c) }}</span>
                 <button type="button" class="link" @click="od.degistir(q.id)">Değiştir</button>
               </li>
             </ul>

@@ -129,7 +129,9 @@ export const TOPLANMA_TURU: ToplanmaTuru[] = [
   { deger: 'fitness', etiket: 'Fitness / Aerobik Salonu', mod: 'tek', katsayi: 5, alanTuru: 'brüt' },
   { deger: 'terminal', etiket: 'Terminal / Gar / Havalimanı / Liman', ornek: 'Yolcu bekleme alanı', mod: 'tek', katsayi: 3, alanTuru: 'net' },
   { deger: 'stadyum', etiket: 'Stadyum / Tribün / Yüzme Havuzu', mod: 'dogrulama' },
-  { deger: 'diger', etiket: 'Diğer / Benzeri Toplanma Kullanımı', mod: 'dogrulama' }
+  { deger: 'diger', etiket: 'Diğer / Benzeri Toplanma Kullanımı', mod: 'dogrulama' },
+  // Düzeltme 02: kendi yazdığı tür eşleşmezse kişi yükü hesaplanmaz, doğrulama gerekir
+  { deger: 'kendim', etiket: 'Diğer', aciklama: '(Kendim Yazacağım)', mod: 'dogrulama' }
 ]
 // Endüstri: tehlike sınıfı bilinmiyorsa BYKHY Ek-1 sırasıyla (C → B → A) kontrol edilir.
 export const EK1 = {
@@ -169,6 +171,28 @@ export const YH_ILISKI: Secenek[] = [
   { deger: 'bolum', etiket: 'Hayır, başka amaçlı bir yapının bir bölümü', ornek: 'Market içinde tüp satış noktası gibi' },
   { deger: 'bilmiyorum', etiket: 'Bilmiyorum' }
 ]
+
+// ── Diğer (Kendim Yazacağım) — Düzeltme 02 (17 Ekim) ──────────────────────────
+// Konut dışındaki tür / alt tür seçimlerine eklenir (konutta yok: kullanıcı kararı). Metinler belgedeki ekran görüntüsünden.
+export const DIGER_YAZ: Secenek = { deger: 'kendim', etiket: 'Diğer', aciklama: '(Kendim Yazacağım)' }
+export const DIGER_YAZ_METIN = {
+  soruNotu: 'Size uygun seçeneği işaretleyin. Listede yoksa kendiniz yazabilirsiniz.',
+  baslik: 'Diğer — Kullanım türünü yazın',
+  aciklama: 'Listede bulunmayan işletme türünüzü yazın. Sistem yazdığınız bilgiyi analiz ederek uygun kategori ile eşleştirir.',
+  oneriBaslik: 'FireOS eşleştirme önerisi',
+  oneriAciklama: 'Yazdığınız kullanım türü analiz edildi ve aşağıdaki kategori ile eşleştirildi.',
+  onerilen: 'Önerilen eşleştirme'
+}
+// Belgedeki örnekler (eşleştirme sözlüğüne de girer; utils/eslestir.ts)
+export const DIGER_ORNEKLERI: Partial<Record<SinifKod, string[]>> = {
+  ticaret: ['Tuhafiye', 'Züccaciye', 'Nalbur', 'Tekel Bayi', 'Çiçekçi', 'Oyuncakçı'],
+  buro: ['Mali Müşavirlik Ofisi', 'Mimarlık Ofisi', 'Sigorta Acentesi', 'Yazılım Ofisi', 'Avukatlık Bürosu'],
+  endustri: ['CNC Atölyesi', 'Plastik Enjeksiyon Tesisi', 'Matbaa', 'Mobilya İmalathanesi', 'Metal İşleme Atölyesi'],
+  kurumsal: ['Rehabilitasyon Merkezi', 'Özel Eğitim Merkezi', 'Gündüz Bakım Merkezi', 'Çocuk Destek Merkezi', 'Yaşlı Bakım Merkezi'],
+  konaklama: ['Butik Otel', 'Bungalov Konaklama Tesisi', 'Dağ Evi Konaklama Tesisi', 'Apart Otel', 'Misafirhane'],
+  toplanma: ['Stand-up Gösteri Salonu', 'E-Spor Etkinlik Salonu', 'Sergi Salonu', 'Konferans Merkezi', 'Düğün ve Etkinlik Salonu'],
+  depolama: ['E-Ticaret Ürün Deposu', 'Soğuk Hava Deposu', 'Mobilya Deposu', 'Yedek Parça Deposu', 'Lojistik Dağıtım Deposu']
+}
 
 // ── Diğer kullanımlar (müşteri Konut dokümanı, "Kart altında gösterilecek örnekler") ──
 export const DIGER_KULLANIM_KARTLARI: (Secenek & { sinif: SinifKod | 'bilinmiyor' })[] = [

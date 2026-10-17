@@ -5,7 +5,7 @@ import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
   KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
   DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
-  KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, type SinifKod, type Secenek
+  KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, DIGER_YAZ, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
 
 export type Cevaplar = Record<string, any>
@@ -34,6 +34,8 @@ export type Soru = {
   ust?: { baslik: string; aciklama?: string }
   // Seçenekler iki sütunda (az sayıda kısa seçenekte de)
   ikiSutun?: boolean
+  // Listede "Diğer (Kendim Yazacağım)" var (Düzeltme 02): seçilince yazı alanı ve eşleştirme önerisi
+  digerYaz?: boolean
 }
 
 const ALAN_SINIFLARI: SinifKod[] = ['kurumsal', 'buro', 'ticaret', 'toplanma']
@@ -102,7 +104,7 @@ export function akis(d: Degerlendirme): Soru[] {
   }
 
   const toplanmaSorulari = (p: string, grup: Soru['grup']) => {
-    need({ id: `${p}toplanmaTuru`, tip: 'secim', grup, sinif: 'toplanma', kisaAd: 'Toplanma türü', baslik: 'Toplanma amaçlı kullanımınızın türü nedir?', secenekler: TOPLANMA_TURU })
+    need({ id: `${p}toplanmaTuru`, tip: 'secim', grup, sinif: 'toplanma', kisaAd: 'Toplanma türü', baslik: 'Toplanma amaçlı kullanımınızın türü nedir?', secenekler: TOPLANMA_TURU, digerYaz: true })
     const tur = TOPLANMA_TURU.find(t => t.deger === c[`${p}toplanmaTuru`])!
     if (tur.mod === 'tek') {
       need({ id: `${p}toplanmaAlani`, tip: 'sayi', grup, sinif: 'toplanma', birim: 'm²', bilinmiyorDugmesi: true, kisaAd: `${tur.etiket} alanı`,
@@ -146,7 +148,7 @@ export function akis(d: Degerlendirme): Soru[] {
   // Depolama (ana kullanım p = '', diğer kullanım p = 'd_'): tür → tehlikeli madde → tehlike sınıfı. Ana kullanımda esas olarak tehlikeli
   // madde depolanıyorsa Yüksek Tehlikeli Yer'e yönlendirilir; bölümde ise yüksek tehlikeli bölüm sayılır (3 yıl), tehlike sınıfı sorulmaz.
   const depolamaSorulari = (p: string, grup: Soru['grup']) => {
-    need({ id: `${p}depoTuru`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Depolama türü', baslik: p ? 'Depolama bölümünde ne depolanıyor veya muhafaza ediliyor?' : 'Ne depolanıyor veya muhafaza ediliyor?', secenekler: DEPO_TURU })
+    need({ id: `${p}depoTuru`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Depolama türü', baslik: p ? 'Depolama bölümünde ne depolanıyor veya muhafaza ediliyor?' : 'Ne depolanıyor veya muhafaza ediliyor?', secenekler: [...DEPO_TURU, DIGER_YAZ], digerYaz: true })
     need({ id: `${p}depoMadde`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Tehlikeli madde', baslik: 'Depolanan ürünler arasında LPG / parlayıcı gaz, patlayıcı madde, akaryakıt veya yanıcı sıvı var mı?', secenekler: DEPO_MADDE })
     if (c[`${p}depoMadde`] === 'esas') {
       if (!p) need({ id: 'yonlendirDepo', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Yüksek Tehlikeli Yer olarak değerlendirilmelidir', aciklama: 'Esas olarak parlayıcı, patlayıcı madde veya akaryakıt depolanan yerler BYKHY Madde 17 kapsamındadır.', eylemler: [{ etiket: 'Yüksek Tehlikeli Yerler olarak devam et', tip: 'esas', sinif: 'yuksek', ek: { yhMod: 'faaliyet', yhIliski: 'esas' } }] })
@@ -172,14 +174,14 @@ export function akis(d: Degerlendirme): Soru[] {
       }
       if (c.konutTuru === 'site') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen blok', baslik: 'Hangi yapıyı / bloğu değerlendirmek istiyorsunuz?', aciklama: 'Site tek bir yapı gibi değerlendirilmez; her blok ayrı değerlendirilir. Blok adı isteğe bağlıdır (ör. A Blok).' })
     } else if (e === 'konaklama') {
-      need({ id: 'konaklamaTuru', tip: 'secim', grup: 'yapi', sinif: 'konaklama', kisaAd: 'Konaklama türü', baslik: 'Konaklama tesisinizin türü nedir?', secenekler: KONAKLAMA_TURU })
+      need({ id: 'konaklamaTuru', tip: 'secim', grup: 'yapi', sinif: 'konaklama', kisaAd: 'Konaklama türü', baslik: 'Konaklama tesisinizin türü nedir?', secenekler: [...KONAKLAMA_TURU, DIGER_YAZ], digerYaz: true })
     } else if (e === 'kurumsal') {
-      need({ id: 'kurumsalTuru', tip: 'secim', grup: 'yapi', sinif: 'kurumsal', kisaAd: 'Kurumsal türü', baslik: 'Kurumsal yapınızın türü nedir?', aciklama: 'Sınıflandırmada kurumun adı değil, yapının fiilî kullanım amacı esas alınır.', secenekler: KURUMSAL_TURU })
+      need({ id: 'kurumsalTuru', tip: 'secim', grup: 'yapi', sinif: 'kurumsal', kisaAd: 'Kurumsal türü', baslik: 'Kurumsal yapınızın türü nedir?', aciklama: 'Sınıflandırmada kurumun adı değil, yapının fiilî kullanım amacı esas alınır.', secenekler: [...KURUMSAL_TURU, DIGER_YAZ], digerYaz: true })
       if (c.kurumsalTuru === 'muayenehane') need({ id: 'yonlendirMuayenehane', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Muayenehane Büro Binaları kapsamındadır', aciklama: 'Doktor veya diş hekimi muayenehanesi, adı sağlık faaliyeti olsa da BYKHY Madde 12’ye göre Büro Binaları kapsamında değerlendirilir.', eylemler: [{ etiket: 'Büro Binaları olarak devam et', tip: 'esas', sinif: 'buro' }] })
       need({ id: 'yerlesim', tip: 'secim', grup: 'yapi', kisaAd: 'Yerleşim', baslik: 'Değerlendirdiğiniz yapı nerede?', secenekler: YERLESIM })
       if (c.yerlesim === 'yerleske') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen yapı', baslik: 'Hangi yapıyı değerlendiriyorsunuz?', aciklama: 'Kampüs veya yerleşkedeki her ayrı yapı kendi fiilî kullanımına göre değerlendirilir. Yapı adı isteğe bağlıdır.' })
     } else if (e === 'ticaret') {
-      need({ id: 'ticaretTuru', tip: 'secim', grup: 'yapi', sinif: 'ticaret', kisaAd: 'Ticari kullanım türü', baslik: 'Ticari kullanımınızın türü nedir?', secenekler: TICARET_TURU })
+      need({ id: 'ticaretTuru', tip: 'secim', grup: 'yapi', sinif: 'ticaret', kisaAd: 'Ticari kullanım türü', baslik: 'Ticari kullanımınızın türü nedir?', secenekler: [...TICARET_TURU, DIGER_YAZ], digerYaz: true })
     } else if (e === 'toplanma') {
       toplanmaSorulari('', 'yapi')
       const t = toplanmaKisi(c)
@@ -189,7 +191,7 @@ export function akis(d: Degerlendirme): Soru[] {
     } else if (e === 'depolama') {
       depolamaSorulari('', 'yapi')
     } else if (e === 'yuksek') {
-      need({ id: 'yhFaaliyet', tip: 'secim', grup: 'yapi', sinif: 'yuksek', kisaAd: 'Faaliyet', baslik: 'Tesisinizde hangi tehlikeli madde ile faaliyet yürütülüyor?', secenekler: YH_FAALIYET })
+      need({ id: 'yhFaaliyet', tip: 'secim', grup: 'yapi', sinif: 'yuksek', kisaAd: 'Faaliyet', baslik: 'Tesisinizde hangi tehlikeli madde ile faaliyet yürütülüyor?', secenekler: [...YH_FAALIYET, DIGER_YAZ], digerYaz: true })
       need({ id: 'yhMod', tip: 'secim', grup: 'yapi', kisaAd: 'Faaliyet biçimi', baslik: 'Bu maddeler tesiste nasıl bulunuyor?', secenekler: YH_MOD })
       if (c.yhMod === 'kendi') need({ id: 'yonlendirYH', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Tek başına Yüksek Tehlikeli Yer sayılmaz', aciklama: 'BYKHY Madde 17 bu sınıfı imal, depolama, doldurma-boşaltma ve satış ile tanımlar; yalnızca kendi ihtiyacı için kullanmak bu kapsamda değildir. Yapınız esas kullanımına göre değerlendirilir; yakıt / LPG kullanımı detaylı analizde ele alınır.', eylemler: [{ etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }] })
       need({ id: 'yhIliski', tip: 'secim', grup: 'yapi', kisaAd: 'Esas faaliyet mi', baslik: 'Bu faaliyet tesisin esas faaliyeti mi?', secenekler: YH_ILISKI })
@@ -236,8 +238,10 @@ export const mevcutSoru = (d: Degerlendirme): Soru | null => {
   return cevapliMi(son, v) ? null : son
 }
 
-export function cevapEtiketi(q: Soru, v: any): string {
+export function cevapEtiketi(q: Soru, v: any, c?: Cevaplar): string {
   if (v === undefined || v === null) return '—'
+  const yazi = c?.[`${q.id}_yazi`]
+  if (yazi) return v === 'kendim' ? yazi : `${yazi} → ${q.secenekler?.find(s => s.deger === v)?.etiket ?? v}`
   if (q.tip === 'coklu') return (v as string[]).map(x => q.secenekler?.find(s => s.deger === x)?.etiket ?? x).join(', ')
   if (q.tip === 'sayi') return v === 'bilmiyorum' ? 'Bilmiyorum' : `${Number(v).toLocaleString('tr-TR')} ${q.birim ?? ''}`.trim()
   if (q.tip === 'metin') return v ? String(v) : 'Belirtilmedi'
@@ -321,6 +325,10 @@ function depolamaSonucu(c: Cevaplar, p: string): SinifCikti {
 }
 
 function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean): SinifCikti {
+  // Düzeltme 02: kendi yazdığı tür hiçbir sınıfla eşleşmediyse tahmini periyot üretilmez; doğrulama gerekli
+  const ts = TUR_SORUSU[s]
+  const turId = ts && (esas ? ts.id : ts.digerde ? `d_${ts.id}` : null)
+  if (turId && c[turId] === 'kendim' && c[`${turId}_eslesme`] === 'yok') return { periyot: null, durum: 'inceleme', belirleyici: `“${c[`${turId}_yazi`]}”: doğrulama gerekli`, soru: turId }
   const p = esas ? '' : 'd_'
   switch (s) {
     case 'konut': return soruyla(bandaGore(c.yukseklik, PERIYOT.yukseklik, YUKSEKLIK, 'Yapı yüksekliği'), 'yukseklik')
@@ -379,8 +387,10 @@ function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { baslikl
     const s = k.sinif!
     const soru = TUR_SORUSU[s]
     const tur: string | undefined = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`d_${soru.id}`] : undefined)
+    // Düzeltme 02: kullanıcının yazdığı özgün ad aynen kullanılır
+    const yazi: string | undefined = (soru && c[`${k.iliski === 'esas' ? soru.id : `d_${soru.id}`}_yazi`]) || (k.iliski === 'esas' ? c.yaziAd : undefined)
     const altTur = s === 'konut' && k.iliski === 'esas' && c.konutTuru !== 'site' ? KONUT_ALT_TURU[c.konutTuru as 'mustakil' | 'apartman']?.find(o => o.deger === c.konutAltTuru)?.etiket : undefined
-    const ad = altTur || (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
+    const ad = yazi || altTur || (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
     const liste = (tur && ANALIZ_BASLIKLARI[s].tur?.[tur]) || ANALIZ_BASLIKLARI[s].varsayilan
     return { ad, liste, ayni: k.iliski === 'ayni' }
   })

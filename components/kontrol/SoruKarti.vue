@@ -1,16 +1,39 @@
 <script setup lang="ts">
 // Tek soru: büyük seçenek kartları (seçince ilerler), çoklu seçim, sayı veya metin girişi, bilgi / yönlendirme.
 import type { Soru, Eylem } from '~/utils/onDegerlendirmeMotoru'
-import { YARDIM, SINIFLAR } from '~/data/onDegerlendirme'
+import { YARDIM, SINIFLAR, DIGER_YAZ_METIN } from '~/data/onDegerlendirme'
+import { eslestir, eslesmeEtiketi, ALT_TURLER, type Eslesme } from '~/utils/eslestir'
 
 const props = defineProps<{ soru: Soru; deger?: any }>()
-const emit = defineEmits<{ cevap: [deger: any]; eylem: [e: Eylem] }>()
+const emit = defineEmits<{ cevap: [deger: any, ek?: Record<string, any>]; eylem: [e: Eylem] }>()
 
 const coklu = ref<string[]>(Array.isArray(props.deger) ? [...props.deger] : [])
 const sayi = ref<string>(typeof props.deger === 'number' ? String(props.deger) : '')
 const metin = ref<string>(typeof props.deger === 'string' ? props.deger : '')
 const yardimAcik = ref(false)
-watch(() => props.soru.id, () => { coklu.value = []; sayi.value = ''; metin.value = ''; yardimAcik.value = false })
+watch(() => props.soru.id, () => { coklu.value = []; sayi.value = ''; metin.value = ''; yardimAcik.value = false; digerAcik.value = false; yazi.value = '' })
+
+// ── Diğer (Kendim Yazacağım) — Düzeltme 02 ──
+const digerAcik = ref(props.deger === 'kendim')
+const yazi = ref('')
+const esasSoru = computed(() => !props.soru.id.startsWith('d_'))
+const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi.value) : []))
+// Bu sorunun sınıfındaki eşleşmeler; esas kullanımda başka sınıfa düşenler de önerilir (sınıf değiştirilir)
+const oneriler = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif || esasSoru.value)
+  .sort((a, b) => Number(b.sinif === props.soru.sinif) - Number(a.sinif === props.soru.sinif)))
+const yaziTemiz = computed(() => yazi.value.trim())
+const oneriSec = (e: Eslesme) => {
+  const ad = yaziTemiz.value
+  if (e.sinif === props.soru.sinif) {
+    emit('cevap', e.tur ?? 'kendim', { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: e.tur ? 'tur' : 'sinif' })
+    return
+  }
+  // Başka sınıf: o sınıfla devam (tür sorusu varsa yazılan ad ve eşleşme oraya taşınır)
+  const turId = ({ konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', ticaret: 'ticaretTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' } as Record<string, string>)[e.sinif]
+  const ek = turId ? { [turId]: e.tur ?? 'kendim', [`${turId}_yazi`]: ad, [`${turId}_eslesme`]: e.tur ? 'tur' : 'sinif' } : { yaziAd: ad }
+  emit('eylem', { etiket: '', tip: 'esas', sinif: e.sinif, ek })
+}
+const eslesmeYok = () => emit('cevap', 'kendim', { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'yok' })
 
 const sayiDegeri = computed(() => { const n = parseFloat(sayi.value.replace(/\./g, '').replace(',', '.')); return isFinite(n) && n > 0 ? n : null })
 const toggle = (v: string) => { coklu.value = coklu.value.includes(v) ? coklu.value.filter(x => x !== v) : [...coklu.value, v] }
@@ -29,6 +52,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
       <button v-if="yardim" type="button" class="yardim-btn" @click="yardimAcik = true"><AppIcon name="search" /> {{ yardim.baslik }}</button>
     </div>
     <p v-if="soru.aciklama" class="aciklama">{{ soru.aciklama }}</p>
+    <p v-if="soru.digerYaz" class="aciklama">{{ DIGER_YAZ_METIN.soruNotu }}</p>
 
     <!-- Tanım (ör. Ticaret: alan bilinmiyorsa m² istenmeden önce) -->
     <div v-if="soru.tanim" class="tanim">
@@ -43,11 +67,36 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
 
     <!-- Tek seçim -->
     <div v-if="soru.tip === 'secim'" class="secenekler" :class="{ iki: soru.ikiSutun || (soru.secenekler?.length ?? 0) > 4 }">
-      <button v-for="s in soru.secenekler" :key="s.deger" type="button" class="secenek" :class="{ secili: deger === s.deger }" @click="emit('cevap', s.deger)">
-        <span class="s-etiket">{{ s.etiket }}</span>
+      <button v-for="s in soru.secenekler" :key="s.deger" type="button" class="secenek" :class="{ secili: s.deger === 'kendim' ? digerAcik : deger === s.deger, kendim: s.deger === 'kendim' }" @click="s.deger === 'kendim' ? (digerAcik = !digerAcik) : emit('cevap', s.deger)">
+        <span class="s-etiket"><AppIcon v-if="s.deger === 'kendim'" name="kalem" class="kalem" />{{ s.etiket }}</span>
         <span v-if="s.aciklama" class="s-aciklama">{{ s.aciklama }}</span>
         <span v-if="s.ornek" class="s-ornek">{{ s.ornek }}</span>
       </button>
+    </div>
+
+    <!-- Diğer (Kendim Yazacağım): yazı + eşleştirme önerisi -->
+    <div v-if="soru.tip === 'secim' && soru.digerYaz && digerAcik" class="diger">
+      <div class="diger-ust">
+        <AppIcon name="kalem" class="diger-ikon" />
+        <div><strong>{{ DIGER_YAZ_METIN.baslik }}</strong><p>{{ DIGER_YAZ_METIN.aciklama }}</p></div>
+      </div>
+      <div class="diger-girdi">
+        <input v-model="yazi" type="text" :aria-label="DIGER_YAZ_METIN.baslik" autofocus>
+        <button v-if="yazi" type="button" class="temizle" aria-label="Temizle" @click="yazi = ''"><AppIcon name="close" /></button>
+      </div>
+      <template v-if="yaziTemiz.length >= 3">
+        <div v-if="oneriler.length" class="oneri">
+          <div class="oneri-ust"><AppIcon name="isilti" class="isilti" /><div><strong>{{ DIGER_YAZ_METIN.oneriBaslik }}</strong><p>{{ DIGER_YAZ_METIN.oneriAciklama }}</p></div></div>
+          <button v-for="e in oneriler" :key="`${e.sinif}-${e.tur}`" type="button" class="oneri-kart" @click="oneriSec(e)">
+            <span><small>{{ DIGER_YAZ_METIN.onerilen }}</small><strong>{{ eslesmeEtiketi(e) }}</strong></span>
+            <span class="devam">Devam Et <AppIcon name="arrow" /></span>
+          </button>
+        </div>
+        <div v-else class="oneri yok">
+          <p><strong>Eşleştirme yapılamadı — doğrulama gerekli</strong></p>
+          <button type="button" class="btn gold-btn" @click="eslesmeYok">Devam Et <AppIcon name="arrow" class="ico" /></button>
+        </div>
+      </template>
     </div>
 
     <!-- Çoklu seçim -->
@@ -103,6 +152,28 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 /* Site Yönetimi'ne geçiş: sonuç ekranındaki ana buton gibi (lacivert zemin, altın yazı) */
 .analiz-btn { flex: 1 0 100%; justify-content: center; min-height: 62px; background: var(--navy); border-color: var(--navy); color: var(--gold-2); font-size: clamp(16px, 1.6vw, 21px); }
 .analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
+/* Diğer (Kendim Yazacağım) */
+.secenek.kendim .s-etiket { display: flex; align-items: center; gap: 8px; }
+.kalem { width: 20px; height: 20px; color: var(--gold); }
+.diger { margin-top: 14px; padding: 16px; border: 1.5px solid var(--gold); border-radius: 10px; background: #fffbf2; display: flex; flex-direction: column; gap: 12px; }
+.diger-ust { display: flex; gap: 12px; align-items: flex-start; }
+.diger-ust strong, .oneri-ust strong { font-family: var(--font-head); font-size: 18px; color: var(--navy); }
+.diger-ust p, .oneri-ust p { margin-top: 2px; font-size: 14.5px; color: var(--muted); }
+.diger-ikon { width: 26px; height: 26px; color: var(--navy); flex: none; }
+.diger-girdi { position: relative; }
+.diger-girdi input { width: 100%; min-height: 50px; padding: 0 44px 0 14px; border: 1.5px solid var(--gold); border-radius: 8px; font: inherit; font-size: 17px; background: #fff; }
+.temizle { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 26px; height: 26px; display: grid; place-items: center; border: 0; border-radius: 50%; background: #e6e1d6; cursor: pointer; }
+.temizle svg { width: 14px; height: 14px; }
+.oneri { padding: 14px; border-radius: 10px; background: #f6f4ef; display: flex; flex-direction: column; gap: 10px; }
+.oneri-ust { display: flex; gap: 12px; align-items: flex-start; }
+.isilti { width: 26px; height: 26px; color: var(--gold); flex: none; }
+.oneri-kart { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border: 1px solid #ecd9a8; border-radius: 10px; background: #fff7e3; cursor: pointer; font: inherit; }
+.oneri-kart:hover { border-color: var(--gold); }
+.oneri-kart small { display: block; font-size: 12.5px; color: var(--muted); }
+.oneri-kart strong { font-family: var(--font-head); font-size: 17px; color: var(--navy); }
+.oneri-kart .devam { display: inline-flex; align-items: center; gap: 6px; flex: none; font-family: var(--font-head); font-weight: 700; color: var(--gold); }
+.oneri-kart .devam svg { width: 18px; height: 18px; }
+.oneri.yok { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; }
 .ust-kutu { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .ust-kutu strong { font-family: var(--font-head); font-size: 20px; color: var(--navy); }
 .ust-kutu p { margin-top: 6px; font-size: 15px; color: var(--muted); }

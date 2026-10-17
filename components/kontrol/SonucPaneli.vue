@@ -159,10 +159,11 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
 .basliklar li:hover { border-color: var(--gold); box-shadow: 0 4px 14px -8px rgba(156, 112, 32, .45); }
 .b-ikon {
   display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 10px;
-  background: var(--navy); color: var(--gold);
+  /* Lacivert zeminde daha belirgin olsun diye markanın altınından açık ton */
+  background: var(--navy); color: #f5d27e;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
 }
-.b-ikon svg { width: 24px; height: 24px; }
+.b-ikon svg { width: 24px; height: 24px; stroke-width: 2; }
 .deger { font-weight: 500; }
 .dugmeler { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
 .ico { width: 20px; height: 20px; }

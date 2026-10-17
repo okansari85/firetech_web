@@ -23,7 +23,7 @@ const devamEt = () => {
 </script>
 
 <template>
-  <section class="section">
+  <section class="section sayfa">
     <div class="wrap">
       <SectionTag num="02" label="Kullanım Sınıfı" />
       <h1 class="title">Yapınızın Kullanım <span class="gold">Sınıfını Seçin</span></h1>
@@ -61,9 +61,11 @@ const devamEt = () => {
 </template>
 
 <style scoped>
-.title { margin-top: 20px; }
-.sub { margin-top: 12px; }
-.rule { margin: 26px 0 30px; }
+/* Header ile başlık arasında boşluk yok; Devam Et kaydırmadan görünsün. */
+.sayfa { padding-top: 18px; }
+.title { margin-top: 14px; }
+.sub { margin-top: 8px; }
+.rule { margin: 16px 0 20px; }
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .option {
   display: flex; gap: 14px; align-items: flex-start; text-align: left;
@@ -76,7 +78,12 @@ const devamEt = () => {
 .opt-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; color: var(--navy); line-height: 1.15; }
 .opt-text { font-size: 14.5px; color: var(--ink); }
 .opt-ref { margin-top: 4px; font-family: var(--font-head); font-size: 13.5px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: .4px; }
-.bar { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; }
+.bar {
+  display: flex; justify-content: space-between; gap: 12px; margin-top: 20px;
+  /* Küçük ekranda kartlar uzun: Geri / Devam Et alt kenarda sabit durur. */
+  position: sticky; bottom: 0; z-index: 5;
+  padding: 14px 0; background: #fff; border-top: 1px solid var(--gold-line);
+}
 .ico { width: 20px; height: 20px; }
 .pending { display: flex; gap: 18px; align-items: center; margin-top: 24px; border-left: 4px solid var(--gold); }
 .pending p { margin-top: 4px; }

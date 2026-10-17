@@ -86,7 +86,7 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
       <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
       <p class="deger">{{ METIN.degerCumlesi }}</p>
       <div class="dugmeler">
-        <NuxtLink to="/giris" class="btn gold-btn">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></NuxtLink>
+        <NuxtLink to="/giris" class="btn analiz-btn">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></NuxtLink>
         <button type="button" class="btn ghost" @click="emit('duzenle')">Cevapları Düzenle</button>
         <button type="button" class="link" @click="emit('yeni')">Yeni değerlendirme</button>
       </div>
@@ -146,6 +146,14 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
 .b-ikon svg { width: 24px; height: 24px; stroke-width: 2; }
 .deger { font-weight: 500; }
 .dugmeler { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+/* Ana eylem: "4 YIL" kutusu gibi lacivert zemin, altın yazı; satırın tamamı */
+.analiz-btn {
+  flex: 1 0 100%; justify-content: center; min-height: 62px; padding: 0 24px;
+  background: var(--navy); border-color: var(--navy); color: var(--gold-2);
+  font-size: 19px; letter-spacing: .6px; box-shadow: 0 10px 24px -12px rgba(12, 40, 64, .7);
+}
+.analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
+.analiz-btn .ico { width: 22px; height: 22px; }
 .ico { width: 20px; height: 20px; }
 .link { border: 0; background: none; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
 .uyari { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--red); border-radius: 8px; background: #fdf6f5; color: var(--red); font-size: 14px; }

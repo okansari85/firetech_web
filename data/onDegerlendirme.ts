@@ -97,6 +97,23 @@ export const KURUMSAL_TURU: Secenek[] = [
   { deger: 'ceza', etiket: 'Tutukevi / Cezaevi / Islahevi', ornek: 'Ceza ve tutukevleri, nezarethaneler, ıslahevleri' },
   { deger: 'muayenehane', etiket: 'Doktor / Diş Hekimi Muayenehanesi', aciklama: 'BYKHY’de Büro Binaları kapsamında değerlendirilir.' }
 ]
+// Büro: tür listesi müşterinin Büro kartı metninden (Düzeltme 05) birebir; "Diğer (Kendim Yazacağım)" Düzeltme 02 (kullanıcı, 17 Ekim).
+export const BURO_TURU: Secenek[] = [
+  { deger: 'b1', etiket: 'Banka' },
+  { deger: 'b2', etiket: 'Borsa' },
+  { deger: 'b3', etiket: 'Kamu Hizmet Binası' },
+  { deger: 'b4', etiket: 'Genel Büro' },
+  { deger: 'b5', etiket: 'İdari Bina' },
+  { deger: 'b6', etiket: 'İş Merkezi' },
+  { deger: 'b7', etiket: 'Şirket Ofisi' },
+  { deger: 'b8', etiket: 'Sigorta Acentesi' },
+  { deger: 'b9', etiket: 'Avukatlık Bürosu' },
+  { deger: 'b10', etiket: 'Mali Müşavirlik' },
+  { deger: 'b11', etiket: 'Mimarlık ve Mühendislik Ofisi' },
+  { deger: 'b12', etiket: 'Yazılım Ofisi' },
+  { deger: 'b13', etiket: 'Danışmanlık Firması' },
+  { deger: 'b14', etiket: 'Doktor ve Diş Hekimi Muayenehanesi' }
+]
 // Ticaret: BYKHY Md. 13/1'de sayılan yerler (kullanıcı, 10 Ekim: yalnız 1. fıkra). Periyodu değiştirmez; ücretli analiz filtresi için.
 export const TICARET_TURU: Secenek[] = [
   { deger: 'magaza', etiket: 'Mağaza' },

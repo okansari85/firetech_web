@@ -29,7 +29,7 @@ const oneriSec = (e: Eslesme) => {
     return
   }
   // Başka sınıf: o sınıfla devam (tür sorusu varsa yazılan ad ve eşleşme oraya taşınır)
-  const turId = ({ konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', ticaret: 'ticaretTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' } as Record<string, string>)[e.sinif]
+  const turId = ({ konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' } as Record<string, string>)[e.sinif]
   const ek = turId ? { [turId]: e.tur ?? 'kendim', [`${turId}_yazi`]: ad, [`${turId}_eslesme`]: e.tur ? 'tur' : 'sinif' } : { yaziAd: ad }
   emit('eylem', { etiket: '', tip: 'esas', sinif: e.sinif, ek })
 }

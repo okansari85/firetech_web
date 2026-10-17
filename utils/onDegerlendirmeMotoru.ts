@@ -5,7 +5,7 @@ import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
   KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
   DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
-  KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, DIGER_YAZ, type SinifKod, type Secenek
+  KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, DIGER_YAZ, BURO_TURU, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
 
 export type Cevaplar = Record<string, any>
@@ -177,9 +177,11 @@ export function akis(d: Degerlendirme): Soru[] {
       need({ id: 'konaklamaTuru', tip: 'secim', grup: 'yapi', sinif: 'konaklama', kisaAd: 'Konaklama türü', baslik: 'Konaklama tesisinizin türü nedir?', secenekler: [...KONAKLAMA_TURU, DIGER_YAZ], digerYaz: true })
     } else if (e === 'kurumsal') {
       need({ id: 'kurumsalTuru', tip: 'secim', grup: 'yapi', sinif: 'kurumsal', kisaAd: 'Kurumsal türü', baslik: 'Kurumsal yapınızın türü nedir?', aciklama: 'Sınıflandırmada kurumun adı değil, yapının fiilî kullanım amacı esas alınır.', secenekler: [...KURUMSAL_TURU, DIGER_YAZ], digerYaz: true })
-      if (c.kurumsalTuru === 'muayenehane') need({ id: 'yonlendirMuayenehane', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Muayenehane Büro Binaları kapsamındadır', aciklama: 'Doktor veya diş hekimi muayenehanesi, adı sağlık faaliyeti olsa da BYKHY Madde 12’ye göre Büro Binaları kapsamında değerlendirilir.', eylemler: [{ etiket: 'Büro Binaları olarak devam et', tip: 'esas', sinif: 'buro' }] })
+      if (c.kurumsalTuru === 'muayenehane') need({ id: 'yonlendirMuayenehane', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Muayenehane Büro Binaları kapsamındadır', aciklama: 'Doktor veya diş hekimi muayenehanesi, adı sağlık faaliyeti olsa da BYKHY Madde 12’ye göre Büro Binaları kapsamında değerlendirilir.', eylemler: [{ etiket: 'Büro Binaları olarak devam et', tip: 'esas', sinif: 'buro', ek: { buroTuru: 'b14' } }] })
       need({ id: 'yerlesim', tip: 'secim', grup: 'yapi', kisaAd: 'Yerleşim', baslik: 'Değerlendirdiğiniz yapı nerede?', secenekler: YERLESIM })
       if (c.yerlesim === 'yerleske') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen yapı', baslik: 'Hangi yapıyı değerlendiriyorsunuz?', aciklama: 'Kampüs veya yerleşkedeki her ayrı yapı kendi fiilî kullanımına göre değerlendirilir. Yapı adı isteğe bağlıdır.' })
+    } else if (e === 'buro') {
+      need({ id: 'buroTuru', tip: 'secim', grup: 'yapi', sinif: 'buro', kisaAd: 'Büro türü', baslik: 'Büro kullanımınızın türü nedir?', secenekler: [...BURO_TURU, DIGER_YAZ], digerYaz: true })
     } else if (e === 'ticaret') {
       need({ id: 'ticaretTuru', tip: 'secim', grup: 'yapi', sinif: 'ticaret', kisaAd: 'Ticari kullanım türü', baslik: 'Ticari kullanımınızın türü nedir?', secenekler: [...TICARET_TURU, DIGER_YAZ], digerYaz: true })
     } else if (e === 'toplanma') {
@@ -375,6 +377,7 @@ const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; 
   konut: { id: 'konutTuru', secenekler: KONUT_TURU },
   konaklama: { id: 'konaklamaTuru', secenekler: KONAKLAMA_TURU },
   kurumsal: { id: 'kurumsalTuru', secenekler: KURUMSAL_TURU },
+  buro: { id: 'buroTuru', secenekler: BURO_TURU },
   ticaret: { id: 'ticaretTuru', secenekler: TICARET_TURU },
   toplanma: { id: 'toplanmaTuru', secenekler: TOPLANMA_TURU, digerde: true },
   depolama: { id: 'depoTuru', secenekler: DEPO_TURU, digerde: true },

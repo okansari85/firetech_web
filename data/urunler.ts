@@ -1,12 +1,12 @@
 // Ücretli ürünler (TASLAK ödeme ekranı). Fiyatlara KDV dahil değildir (kullanıcı kararı, 11 Ekim).
-// bina: tutar henüz belirlenmedi (kullanıcı kararı bekleniyor) → ekranda "XX,XX TL" görünür.
+// Tutarlar kullanıcıdan (17 Ekim): bina 19,99 TL; site 19,90 TL (Düzeltmeler belgesi).
 export type UrunKod = 'bina' | 'site'
 
 export const URUNLER: Record<UrunKod, { ad: string; aciklama: string; fiyat: number | null; sonra: string }> = {
   bina: {
     ad: 'Detaylı Yangın Güvenliği Analizi',
     aciklama: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini görün, eksikleri önceden belirleyin ve periyodik kontrole hazırlanın.',
-    fiyat: null,
+    fiyat: 19.99,
     sonra: '/odeme?urun=bina&tamam=1'
   },
   site: {

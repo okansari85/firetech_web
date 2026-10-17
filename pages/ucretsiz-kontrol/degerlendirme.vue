@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Ücretsiz ön değerlendirme: solda sırayla sorular (motor belirler), sağda canlı bina görünümü; sonunda sonuç.
 // Backend'siz çalışır; kurallar utils/onDegerlendirmeMotoru.ts, metinler data/onDegerlendirme.ts.
-import { SINIFLAR, KARMA_YOK } from '~/data/onDegerlendirme'
+import { SINIFLAR, KARMA_YOK, METIN } from '~/data/onDegerlendirme'
 import { cevapEtiketi, type Eylem } from '~/utils/onDegerlendirmeMotoru'
 
 useSeoMeta({ title: 'Ücretsiz Ön Değerlendirme', description: 'Binanızın periyodik yangın kontrol süresini birkaç soruda öğrenin.' })
@@ -72,11 +72,16 @@ const yeni = () => { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi
           <ClientOnly><KontrolBinaGorunumu :sonuc="sonuc" :c="d.c" :esas="d.esas" /></ClientOnly>
         </div>
       </div>
+
+      <!-- Sonuç uyarısı: sayfanın en altında (dar ekranda bina görünümünün de altında) -->
+      <ClientOnly><p v-if="tamam" class="uyari"><AppIcon name="alert" />{{ METIN.uyari }}</p></ClientOnly>
     </div>
   </section>
 </template>
 
 <style scoped>
+.uyari { display: flex; gap: 10px; align-items: flex-start; margin-top: 16px; padding: 12px 16px; border: 1px solid var(--red); border-radius: 8px; background: #fdf6f5; color: var(--red); font-size: 14px; }
+.uyari svg { width: 20px; height: 20px; flex: none; }
 .sayfa { padding-top: 40px; }
 .title { margin-top: 18px; }
 .esas { margin-top: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 17px; }

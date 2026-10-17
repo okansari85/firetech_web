@@ -55,6 +55,25 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
       </div>
     </div>
 
+    <!-- Detaylı analiz -->
+    <div class="card cta">
+      <p class="analiz-etiket">{{ METIN.analizEtiket }}</p>
+      <h3 class="analiz-adi">{{ sonuc.analizAdi }}</h3>
+      <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
+      <p class="deger">{{ METIN.degerCumlesi }}</p>
+      <div class="dugmeler">
+        <NuxtLink to="/giris" class="btn analiz-btn">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></NuxtLink>
+        <button type="button" class="btn ghost" @click="emit('duzenle')">Cevapları Düzenle</button>
+        <button type="button" class="link" @click="emit('yeni')">Yeni değerlendirme</button>
+      </div>
+    </div>
+
+    <!-- Nasıl karar verildi -->
+    <div v-if="sonuc.notlar.length" class="card notlar">
+      <h3>Nasıl karar verildi?</h3>
+      <ol><li v-for="n in sonuc.notlar" :key="n">{{ n }}</li></ol>
+    </div>
+
     <!-- Kullanım bazında -->
     <div class="card tablo-kart">
       <h3>Kullanım bazında sonuç</h3>
@@ -73,26 +92,6 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
       </div>
     </div>
 
-    <!-- Nasıl karar verildi -->
-    <div v-if="sonuc.notlar.length" class="card notlar">
-      <h3>Nasıl karar verildi?</h3>
-      <ol><li v-for="n in sonuc.notlar" :key="n">{{ n }}</li></ol>
-    </div>
-
-    <!-- Detaylı analiz -->
-    <div class="card cta">
-      <p class="analiz-etiket">{{ METIN.analizEtiket }}</p>
-      <h3 class="analiz-adi">{{ sonuc.analizAdi }}</h3>
-      <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
-      <p class="deger">{{ METIN.degerCumlesi }}</p>
-      <div class="dugmeler">
-        <NuxtLink to="/giris" class="btn analiz-btn">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></NuxtLink>
-        <button type="button" class="btn ghost" @click="emit('duzenle')">Cevapları Düzenle</button>
-        <button type="button" class="link" @click="emit('yeni')">Yeni değerlendirme</button>
-      </div>
-    </div>
-
-    <p class="uyari"><AppIcon name="alert" />{{ METIN.uyari }}</p>
   </section>
 </template>
 
@@ -145,19 +144,19 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
 }
 .b-ikon svg { width: 24px; height: 24px; stroke-width: 2; }
 .deger { font-weight: 500; }
-.dugmeler { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; }
+.dugmeler { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; container-type: inline-size; }
 /* Ana eylem: "4 YIL" kutusu gibi lacivert zemin, altın yazı; satırın tamamı */
 .analiz-btn {
-  flex: 1 0 100%; justify-content: center; min-height: 62px; padding: 0 24px;
+  flex: 1 0 100%; justify-content: center; min-height: 76px; padding: 0 20px;
   background: var(--navy); border-color: var(--navy); color: var(--gold-2);
-  font-size: 19px; letter-spacing: .6px; box-shadow: 0 10px 24px -12px rgba(12, 40, 64, .7);
+  /* Yazı tek satırda, butonun genişliğine sığabildiği en büyük boyutta (≈ genişlik − ok ve kenar boşluğu, ÷ yazı oranı) */
+  font-size: clamp(15px, calc((100cqw - 84px) / 20.4), 34px); letter-spacing: .4px; white-space: nowrap; box-shadow: 0 10px 24px -12px rgba(12, 40, 64, .7);
 }
 .analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
-.analiz-btn .ico { width: 22px; height: 22px; }
+.analiz-btn .ico { width: 28px; height: 28px; }
+@media (max-width: 640px) { .analiz-btn { min-height: 62px; } }
 .ico { width: 20px; height: 20px; }
 .link { border: 0; background: none; color: var(--muted); text-decoration: underline; cursor: pointer; font: inherit; }
-.uyari { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px; border: 1px solid var(--red); border-radius: 8px; background: #fdf6f5; color: var(--red); font-size: 14px; }
-.uyari svg { width: 20px; height: 20px; flex: none; }
 @media (max-width: 760px) {
   .ana { grid-template-columns: 1fr; }
   .periyot { align-items: flex-start; }

@@ -126,9 +126,9 @@ export function akis(d: Degerlendirme): Soru[] {
   // (Endüstri kilitli akışlar, Ekran 6 / 6.4 / 6.4.1).
   const endustriSorulari = (p: string, grup: Soru['grup']) => {
     const ad = p ? 'Üretim bölümünün' : 'Tesisinizin'
-    need({ id: `${p}endTehlike`, tip: 'secim', grup, sinif: 'endustri', kisaAd: p ? 'Üretim tehlike sınıfı' : 'Tehlike sınıfı', baslik: `${ad} tehlike sınıfını biliyor musunuz?`, aciklama: 'Tehlike sınıfınızı onaylı yangın projenizden kontrol edebilirsiniz. EK-6’da da mevcut kullanımın projedeki tehlike sınıfına uygunluğu ayrıca kontrol edilir.', secenekler: TEHLIKE })
+    need({ id: `${p}endTehlike`, tip: 'secim', grup, sinif: 'endustri', kisaAd: p ? 'Üretim tehlike sınıfı' : 'Tehlike sınıfı', baslik: `${ad} tehlike sınıfını biliyor musunuz?`, aciklama: 'Tehlike sınıfı, tesisinizde yürütülen faaliyetlere ve kullanılan maddelerin özelliklerine göre belirlenir. Biliyorsanız tehlike sınıfınızı seçin. Emin değilseniz “Bilmiyorum” seçeneğiyle devam edebilirsiniz.', secenekler: TEHLIKE })
     if (c[`${p}endTehlike`] !== 'bilmiyorum') return
-    need({ id: `${p}endProje`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Projeden tehlike sınıfı', baslik: 'Onaylı yangın projenizden tehlike sınıfınızı belirleyebiliyor musunuz?', aciklama: 'EK-6 Periyodik Kontrol Formunda yapının mevcut kullanımının projesinde belirtilen tehlike sınıfına uygunluğu kontrol edilir.', secenekler: PROJEDEN })
+    need({ id: `${p}endProje`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Projeden tehlike sınıfı', baslik: 'Onaylı yangın projenizden tehlike sınıfınızı öğrenebiliyor musunuz?', aciklama: 'Yangın tehlike sınıfınız, varsa onaylı yangın projenizde veya yangın söndürme sistemi tasarım belgelerinizde belirtilmiş olabilir.', secenekler: PROJEDEN })
     if (c[`${p}endProje`] === 'evet') {
       need({ id: `${p}endProjeTehlike`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Projedeki tehlike sınıfı', baslik: 'Projenizde belirtilen tehlike sınıfı nedir?', secenekler: TEHLIKE.filter(o => o.deger !== 'bilmiyorum') })
       return

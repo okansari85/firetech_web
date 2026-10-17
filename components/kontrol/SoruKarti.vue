@@ -96,9 +96,10 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .tanim { margin-top: 16px; padding: 16px 18px; background: var(--paper); border-left: 3px solid var(--vurgu); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; font-size: 15.5px; color: var(--ink); }
 .tanim p { margin: 0; }
 .tanim strong { font-family: var(--font-head); color: var(--navy); }
-.liste { margin-top: 16px; padding: 14px 18px; background: var(--paper); border-left: 3px solid var(--gold); border-radius: 6px; }
-.liste strong { font-family: var(--font-head); color: var(--navy); }
-.liste ul { margin: 8px 0 0; padding-left: 18px; font-size: 14.5px; }
+.liste { margin-top: 16px; padding: 16px 20px; background: var(--paper); border-left: 3px solid var(--gold); border-radius: 6px; }
+/* Ek-1 C / B / A ekranları (Düzeltme 06: yazılar daha büyük) */
+.liste strong { font-family: var(--font-head); font-size: 19px; color: var(--navy); }
+.liste ul { margin: 10px 0 0; padding-left: 20px; font-size: 17px; line-height: 1.55; }
 .secenekler { display: grid; gap: 12px; margin-top: 22px; }
 .secenekler.iki { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .secenek { display: flex; flex-direction: column; gap: 5px; text-align: left; font: inherit; color: inherit; cursor: pointer; padding: 16px 18px; border: 1.5px solid var(--border); border-radius: 10px; background: #fff; transition: border-color .15s, box-shadow .15s, transform .1s; }

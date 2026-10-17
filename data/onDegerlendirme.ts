@@ -57,7 +57,8 @@ export const TEHLIKE: Secenek[] = [
   { deger: 'bilmiyorum', etiket: 'Bilmiyorum / Emin değilim' }
 ]
 export const EVET_HAYIR: Secenek[] = [{ deger: 'evet', etiket: 'Evet' }, { deger: 'hayir', etiket: 'Hayır' }]
-export const PROJEDEN: Secenek[] = [{ deger: 'evet', etiket: 'Evet' }, { deger: 'hayir', etiket: 'Hayır', aciklama: 'Projeye ulaşamıyorum, projede bulamıyorum veya projem yok.' }]
+// Düzeltme 06 (17 Ekim): müşteri metni
+export const PROJEDEN: Secenek[] = [{ deger: 'evet', etiket: 'Evet', aciklama: 'Projemde tehlike sınıfı bilgisi bulunuyor.' }, { deger: 'hayir', etiket: 'Hayır / Bilmiyorum', aciklama: 'Projeme ulaşamıyorum, tehlike sınıfını bulamıyorum veya projem yok.' }]
 
 // ── Sınıfa özel seçenekler ────────────────────────────────────────────────────
 export const KONUT_TURU: Secenek[] = [

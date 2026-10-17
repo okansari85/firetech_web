@@ -76,7 +76,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
 
     <!-- Bilgi / yönlendirme -->
     <div v-else-if="soru.tip === 'bilgi'" class="alt">
-      <button v-for="e in soru.eylemler" :key="e.etiket" type="button" class="btn gold-btn" @click="emit('eylem', e)">{{ e.etiket }} <AppIcon name="arrow" class="ico" /></button>
+      <button v-for="e in soru.eylemler" :key="e.etiket" type="button" class="btn" :class="e.tip === 'sayfa' ? 'analiz-btn' : 'gold-btn'" @click="emit('eylem', e)">{{ e.etiket }} <AppIcon name="arrow" class="ico" /></button>
     </div>
 
     <!-- Yardım penceresi: yalnız Kapat ile kapanır -->
@@ -100,6 +100,9 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .tanim { margin-top: 16px; padding: 16px 18px; background: var(--paper); border-left: 3px solid var(--vurgu); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; font-size: 15.5px; color: var(--ink); }
 .tanim p { margin: 0; }
 .tanim strong { font-family: var(--font-head); color: var(--navy); }
+/* Site Yönetimi'ne geçiş: sonuç ekranındaki ana buton gibi (lacivert zemin, altın yazı) */
+.analiz-btn { flex: 1 0 100%; justify-content: center; min-height: 62px; background: var(--navy); border-color: var(--navy); color: var(--gold-2); font-size: clamp(16px, 1.6vw, 21px); }
+.analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
 .ust-kutu { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .ust-kutu strong { font-family: var(--font-head); font-size: 20px; color: var(--navy); }
 .ust-kutu p { margin-top: 6px; font-size: 15px; color: var(--muted); }

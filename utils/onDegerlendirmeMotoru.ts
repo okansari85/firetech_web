@@ -9,9 +9,10 @@ import {
 } from '~/data/onDegerlendirme'
 
 export type Cevaplar = Record<string, any>
-export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar }
+// kayit: Site Yönetimi envanterindeki tek bir yapı / alan (yalnız yapı bilgileri sorulur; konutta "Site" seçeneği ve "başka kullanım" adımı yok).
+export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolean }
 
-export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec'; sinif?: SinifKod; ek?: Cevaplar }
+export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa'; sinif?: SinifKod; ek?: Cevaplar; yol?: string }
 export type Soru = {
   id: string
   tip: 'secim' | 'coklu' | 'sayi' | 'metin' | 'bilgi'
@@ -156,7 +157,7 @@ export function akis(d: Degerlendirme): Soru[] {
   try {
     // 1) Esas kullanıma özel sorular
     if (e === 'konut') {
-      need({ id: 'konutTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Konut türü', baslik: 'Konut yapınızı seçin', secenekler: KONUT_TURU })
+      need({ id: 'konutTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Konut türü', baslik: 'Konut yapınızı seçin', secenekler: d.kayit ? KONUT_TURU.filter(t => t.deger !== 'site') : KONUT_TURU })
       // Düzeltme 03: türü seçince "Yapınız aşağıdakilerden hangisi?"; sitede önce kullanıcı (oturan / yönetim)
       const tur = KONUT_TURU.find(t => t.deger === c.konutTuru)!
       if (c.konutTuru === 'mustakil' || c.konutTuru === 'apartman') {
@@ -164,8 +165,8 @@ export function akis(d: Degerlendirme): Soru[] {
       }
       if (c.konutTuru === 'site') {
         need({ id: 'siteKullanici', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Site kullanıcısı', baslik: 'Hangi kullanıcı olarak devam etmek istiyorsunuz?', ust: { baslik: 'SİTENİZİ TANIYALIM' }, aciklama: 'Size uygun soruları gösterebilmemiz için lütfen seçim yapın.', secenekler: SITE_KULLANICI })
-        // Site Yönetimi akışı (ücretli, ayrı envanter ekranı) henüz yok; kullanıcı kararı bekleniyor.
-        if (c.siteKullanici === 'yonetim') need({ id: 'siteYonetimi', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Site / Yerleşke Yönetimi', aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi', eylemler: [{ etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }] })
+        // Site Yönetimi: ayrı sayfa (pages/ucretsiz-kontrol/site-yonetimi.vue; ödeme ekranı şimdilik deneme)
+        if (c.siteKullanici === 'yonetim') need({ id: 'siteYonetimi', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Site / Yerleşke Yönetimi', aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi', eylemler: [{ etiket: METIN.cta, tip: 'sayfa', yol: '/ucretsiz-kontrol/site-yonetimi' }] })
         need({ id: 'siteTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Site türü', baslik: 'Yapınız aşağıdakilerden hangisi?', ust: { baslik: tur.etiket, aciklama: tur.aciklama }, secenekler: SITE_TURU })
       }
       if (c.konutTuru === 'site') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen blok', baslik: 'Hangi yapıyı / bloğu değerlendirmek istiyorsunuz?', aciklama: 'Site tek bir yapı gibi değerlendirilmez; her blok ayrı değerlendirilir. Blok adı isteğe bağlıdır (ör. A Blok).' })
@@ -197,8 +198,8 @@ export function akis(d: Degerlendirme): Soru[] {
     // 2) Esas kullanıma ait yapı bilgileri
     yapiSorulari(e === 'toplanma' && !toplanmaSayilir('') ? [] : [e])
 
-    // 3) Diğer kullanımlar (karma kullanım hesaplanmayan ana kullanımlarda bu adım yok)
-    if (KARMA_YOK.includes(e)) return L
+    // 3) Diğer kullanımlar (karma kullanım hesaplanmayan ana kullanımlarda ve site envanteri kayıtlarında bu adım yok)
+    if (KARMA_YOK.includes(e) || d.kayit) return L
     need({ id: 'digerVar', tip: 'secim', grup: 'diger', kisaAd: 'Başka kullanım', baslik: DIGER_VAR_METNI[e].soru,
       secenekler: [{ deger: 'hayir', etiket: DIGER_VAR_METNI[e].hayir }, { deger: 'evet', etiket: 'Evet, başka kullanım da var' }] })
     if (c.digerVar === 'evet') {

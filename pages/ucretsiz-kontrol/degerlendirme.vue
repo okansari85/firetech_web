@@ -21,7 +21,8 @@ const kaydir = () => nextTick(() => {
 })
 const cevap = (v: any) => { if (mevcut.value) { od.cevapla(mevcut.value.id, v); kaydir() } }
 const eylem = (e: Eylem) => {
-  if (e.tip === 'sinif-sec') { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') } else { od.eylem(e); kaydir() }
+  if (e.tip === 'sinif-sec') { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') } else if (e.tip === 'sayfa' && e.yol) navigateTo(e.yol)
+  else { od.eylem(e); kaydir() }
 }
 const geri = () => { if (!od.geri()) navigateTo('/ucretsiz-kontrol/kullanim-sinifi') }
 // Sonuçtaki "… Düzenle" düğmesi: o soru ve sonrasındaki cevaplar silinir, akış o sorudan devam eder.

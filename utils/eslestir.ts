@@ -21,8 +21,15 @@ for (const k of kullanimSiniflari) {
 }
 for (const [sinif, ornekler] of Object.entries(DIGER_ORNEKLERI) as [SinifKod, string[]][]) for (const o of ornekler) ekle(sadelestir(o), sinif)
 for (const [sinif, liste] of Object.entries(ALT_TURLER) as [SinifKod, Secenek[]][]) {
-  for (const o of liste.filter(o => !['diger', 'benzeri', 'kendim'].includes(o.deger))) for (const t of parcala(o.etiket)) ekle(t, sinif, o.deger)
+  for (const o of liste.filter(o => !['diger', 'benzeri', 'kendim'].includes(o.deger))) {
+    for (const t of parcala(o.etiket)) ekle(t, sinif, o.deger)
+    // Seçeneğin örnekleri de o alt türe bağlanır (ör. Eğitim Tesisi: "Okul, kreş, anaokulu…")
+    if (o.ornek) for (const t of parcala(o.ornek)) ekle(t, sinif, o.deger)
+  }
 }
+
+// Sınıf eşleşip alt tür bulunamazsa varsayılan alt tür (kullanıcı, 17 Ekim: "tuhafiye → dükkân"); adında "mağaza" geçen → Mağaza
+const VARSAYILAN_TUR: Partial<Record<SinifKod, (y: string) => string>> = { ticaret: y => (y.includes('mağaza') ? 'magaza' : 'dukkan') }
 
 // Tek başına ayırt etmeyen genel kelimeler (ör. "merkezi", "deposu"): yalnız bunlar ortaksa eşleşme sayılmaz.
 const GENEL = new Set(['merkezi', 'merkez', 'tesisi', 'tesis', 'tesisler', 'tesisleri', 'deposu', 'depo', 'salonu', 'salon', 'binası', 'bina', 'binalar', 'alanı', 'alan', 'alanları', 'yeri', 'yerleri', 'yerler', 'ofisi', 'ofis', 'atölyesi', 'atölye', 'fabrikası', 'mağazası', 'satış', 'yapılar', 'yapı', 'amaçlı', 'kullanılan', 'hizmet', 'genel', 'diğer', 'evleri', 'evler'])
@@ -48,7 +55,10 @@ export function eslestir(yazi: string): Eslesme[] {
     if (tekil.some(x => x.sinif === e.sinif && (x.tur === e.tur || !e.tur))) continue
     tekil.push(e)
   }
+  // Alt türü bulunamayan sınıf eşleşmelerine varsayılan alt tür (varsa); aynı sınıfta alt türlü eşleşme varsa sınıf-yalnız olan atılır
   return tekil
+    .map(e => (e.tur || !VARSAYILAN_TUR[e.sinif] ? e : { ...e, tur: VARSAYILAN_TUR[e.sinif]!(y) }))
+    .filter((e, i, L) => L.findIndex(x => x.sinif === e.sinif && x.tur === e.tur) === i)
 }
 
 export const eslesmeEtiketi = (e: Eslesme) => {

@@ -61,10 +61,28 @@ export const EVET_HAYIR: Secenek[] = [{ deger: 'evet', etiket: 'Evet' }, { deger
 export const PROJEDEN: Secenek[] = [{ deger: 'evet', etiket: 'Evet', aciklama: 'Projemde tehlike sınıfı bilgisi bulunuyor.' }, { deger: 'hayir', etiket: 'Hayır / Bilmiyorum', aciklama: 'Projeme ulaşamıyorum, tehlike sınıfını bulamıyorum veya projem yok.' }]
 
 // ── Sınıfa özel seçenekler ────────────────────────────────────────────────────
+// Düzeltme 03 (17 Ekim): konut türü, alt türler ve site kullanıcısı — müşteri metinleri birebir.
 export const KONUT_TURU: Secenek[] = [
-  { deger: 'mustakil', etiket: 'Müstakil Ev / Villa', aciklama: 'Tek başına kullanılan müstakil konutlar ve villalar.' },
-  { deger: 'apartman', etiket: 'Apartman', aciklama: 'Tek yapı / blok halinde konut kullanımı.' },
-  { deger: 'site', etiket: 'Site / Yerleşke', aciklama: 'Birden fazla konut yapısı veya blok bulunan site / yerleşke.' }
+  { deger: 'mustakil', etiket: 'Müstakil Ev / Villa', aciklama: 'Tek başına kullanılan müstakil konutlar ve villalar. Ahşap evler, yalılar, köşkler, bağ evleri, dağ evleri, prefabrik evler, konteyner konutlar, bungalovlar ve konut amaçlı kullanılan tiny house yapılar.' },
+  { deger: 'apartman', etiket: 'Apartman / Rezidans', aciklama: 'Tek yapı / blok halinde konut kullanımı. Apartmanlar, rezidanslar, çok katlı konut binaları ve birden fazla bağımsız konut bölümü bulunan yapılar.' },
+  { deger: 'site', etiket: 'Site / Yerleşke / Yaşam Kompleksi', aciklama: 'Birden fazla konut yapısı veya blok bulunan site / yerleşke. Toplu konutlar, konut siteleri, yaşam alanları, konut yerleşkeleri, villa siteleri ve müstakil veya ortak yaşam alanlarından oluşan konut kompleksleri.' }
+]
+// "Yapınız aşağıdakilerden hangisi?" (konut türünü seçince açılan ekran)
+export const KONUT_ALT_TURU: Record<'mustakil' | 'apartman', Secenek[]> = {
+  mustakil: ['Müstakil Ev', 'Villa', 'Ahşap Ev', 'Yalı', 'Köşk', 'Bağ Evi', 'Dağ Evi', 'Prefabrik Ev', 'Konteyner Konut', 'Bungalov', 'Tiny House', 'Diğer Müstakil Konut']
+    .map((etiket, i) => ({ deger: `m${i + 1}`, etiket })),
+  apartman: ['Apartman', 'Rezidans', 'Çok Katlı Konut Binası', 'Birden Fazla Bağımsız Konut Bölümü Bulunan Yapı']
+    .map((etiket, i) => ({ deger: `a${i + 1}`, etiket }))
+}
+export const SITE_KULLANICI: Secenek[] = [
+  { deger: 'oturan', etiket: 'Sitede Oturanlar', aciklama: 'Site içerisinde yaşadığım konutun veya bloğun periyodik kontrol süresini öğrenmek istiyorum.' },
+  { deger: 'yonetim', etiket: 'Site Yönetimi', aciklama: 'Sitemizdeki binaların ve blokların periyodik kontrol sürelerini ayrı ayrı öğrenmek istiyorum.' }
+]
+// Sitede oturanlar için site türü
+export const SITE_TURU: Secenek[] = [
+  { deger: 's1', etiket: 'Villa / Müstakil Evlerden Oluşan Site yerleşke' },
+  { deger: 's2', etiket: 'Apartman / Rezidans Bloklarından Oluşan Site' },
+  { deger: 's3', etiket: 'Karma Yapılı Site / Yerleşke', aciklama: '(müstakil villa - ev / apartman / rezidans blokları /yaşam alanı vb)' }
 ]
 export const KONAKLAMA_TURU: Secenek[] = [
   { deger: 'otel', etiket: 'Otel' }, { deger: 'motel', etiket: 'Motel' }, { deger: 'termal', etiket: 'Termal Tesis' },
@@ -286,7 +304,7 @@ export const YARDIM = {
 // Her kullanım için alt türe özel başlıklar (yoksa sınıfın varsayılanı); birden fazla kullanım varsa BIRLIKTE başlıkları eklenir.
 // Alt türün başlıklarda geçen kısa adı: seçenek etiketinden farklı olması gerekenler.
 export const KULLANIM_KISA_AD: Record<string, string> = {
-  mustakil: 'Müstakil konut', site: 'Site', yurt: 'Yurt', diger: '',
+  mustakil: 'Müstakil konut', apartman: 'Apartman', site: 'Site', yurt: 'Yurt', diger: '',
   egitim: 'Eğitim yapısı', saglik: 'Sağlık yapısı', ceza: 'Ceza infaz kurumu',
   restoran: 'Restoran / kafe', salon: 'Salon', bar: 'Bar / gece kulübü', muze: 'Müze', sergi: 'Sergi alanı', ibadet: 'İbadethane',
   spor: 'Spor salonu', fitness: 'Fitness salonu', terminal: 'Terminal', stadyum: 'Stadyum / tribün',

@@ -5,7 +5,7 @@ import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
   KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
   DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
-  type SinifKod, type Secenek
+  KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
 
 export type Cevaplar = Record<string, any>
@@ -28,6 +28,10 @@ export type Soru = {
   istegeBagli?: boolean
   eylemler?: Eylem[]
   sinif?: SinifKod
+  // Sorunun üstünde, önceki seçimi hatırlatan kutu (ör. "Müstakil Ev / Villa" + açıklaması)
+  ust?: { baslik: string; aciklama?: string }
+  // Seçenekler iki sütunda (az sayıda kısa seçenekte de)
+  ikiSutun?: boolean
 }
 
 const ALAN_SINIFLARI: SinifKod[] = ['kurumsal', 'buro', 'ticaret', 'toplanma']
@@ -153,6 +157,17 @@ export function akis(d: Degerlendirme): Soru[] {
     // 1) Esas kullanıma özel sorular
     if (e === 'konut') {
       need({ id: 'konutTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Konut türü', baslik: 'Konut yapınızı seçin', secenekler: KONUT_TURU })
+      // Düzeltme 03: türü seçince "Yapınız aşağıdakilerden hangisi?"; sitede önce kullanıcı (oturan / yönetim)
+      const tur = KONUT_TURU.find(t => t.deger === c.konutTuru)!
+      if (c.konutTuru === 'mustakil' || c.konutTuru === 'apartman') {
+        need({ id: 'konutAltTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Konut yapısı', baslik: 'Yapınız aşağıdakilerden hangisi?', ust: { baslik: tur.etiket, aciklama: tur.aciklama }, ikiSutun: true, secenekler: KONUT_ALT_TURU[c.konutTuru as 'mustakil' | 'apartman'] })
+      }
+      if (c.konutTuru === 'site') {
+        need({ id: 'siteKullanici', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Site kullanıcısı', baslik: 'Hangi kullanıcı olarak devam etmek istiyorsunuz?', ust: { baslik: 'SİTENİZİ TANIYALIM' }, aciklama: 'Size uygun soruları gösterebilmemiz için lütfen seçim yapın.', secenekler: SITE_KULLANICI })
+        // Site Yönetimi akışı (ücretli, ayrı envanter ekranı) henüz yok; kullanıcı kararı bekleniyor.
+        if (c.siteKullanici === 'yonetim') need({ id: 'siteYonetimi', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Site / Yerleşke Yönetimi', aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi', eylemler: [{ etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }] })
+        need({ id: 'siteTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Site türü', baslik: 'Yapınız aşağıdakilerden hangisi?', ust: { baslik: tur.etiket, aciklama: tur.aciklama }, secenekler: SITE_TURU })
+      }
       if (c.konutTuru === 'site') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen blok', baslik: 'Hangi yapıyı / bloğu değerlendirmek istiyorsunuz?', aciklama: 'Site tek bir yapı gibi değerlendirilmez; her blok ayrı değerlendirilir. Blok adı isteğe bağlıdır (ör. A Blok).' })
     } else if (e === 'konaklama') {
       need({ id: 'konaklamaTuru', tip: 'secim', grup: 'yapi', sinif: 'konaklama', kisaAd: 'Konaklama türü', baslik: 'Konaklama tesisinizin türü nedir?', secenekler: KONAKLAMA_TURU })
@@ -362,7 +377,8 @@ function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { baslikl
     const s = k.sinif!
     const soru = TUR_SORUSU[s]
     const tur: string | undefined = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`d_${soru.id}`] : undefined)
-    const ad = (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
+    const altTur = s === 'konut' && k.iliski === 'esas' && c.konutTuru !== 'site' ? KONUT_ALT_TURU[c.konutTuru as 'mustakil' | 'apartman']?.find(o => o.deger === c.konutAltTuru)?.etiket : undefined
+    const ad = altTur || (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
     const liste = (tur && ANALIZ_BASLIKLARI[s].tur?.[tur]) || ANALIZ_BASLIKLARI[s].varsayilan
     return { ad, liste, ayni: k.iliski === 'ayni' }
   })

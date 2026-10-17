@@ -20,6 +20,10 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
 
 <template>
   <section class="soru card" :class="soru.tip" :style="{ '--vurgu': renk }">
+    <div v-if="soru.ust" class="ust-kutu">
+      <strong>{{ soru.ust.baslik }}</strong>
+      <p v-if="soru.ust.aciklama">{{ soru.ust.aciklama }}</p>
+    </div>
     <div class="ust">
       <h2>{{ soru.baslik }}</h2>
       <button v-if="yardim" type="button" class="yardim-btn" @click="yardimAcik = true"><AppIcon name="search" /> {{ yardim.baslik }}</button>
@@ -38,7 +42,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
     </div>
 
     <!-- Tek seçim -->
-    <div v-if="soru.tip === 'secim'" class="secenekler" :class="{ iki: (soru.secenekler?.length ?? 0) > 4 }">
+    <div v-if="soru.tip === 'secim'" class="secenekler" :class="{ iki: soru.ikiSutun || (soru.secenekler?.length ?? 0) > 4 }">
       <button v-for="s in soru.secenekler" :key="s.deger" type="button" class="secenek" :class="{ secili: deger === s.deger }" @click="emit('cevap', s.deger)">
         <span class="s-etiket">{{ s.etiket }}</span>
         <span v-if="s.aciklama" class="s-aciklama">{{ s.aciklama }}</span>
@@ -96,6 +100,9 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .tanim { margin-top: 16px; padding: 16px 18px; background: var(--paper); border-left: 3px solid var(--vurgu); border-radius: 6px; display: flex; flex-direction: column; gap: 10px; font-size: 15.5px; color: var(--ink); }
 .tanim p { margin: 0; }
 .tanim strong { font-family: var(--font-head); color: var(--navy); }
+.ust-kutu { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.ust-kutu strong { font-family: var(--font-head); font-size: 20px; color: var(--navy); }
+.ust-kutu p { margin-top: 6px; font-size: 15px; color: var(--muted); }
 .liste { margin-top: 16px; padding: 16px 20px; background: var(--paper); border-left: 3px solid var(--gold); border-radius: 6px; }
 /* Ek-1 C / B / A ekranları (Düzeltme 06: yazılar daha büyük) */
 .liste strong { font-family: var(--font-head); font-size: 19px; color: var(--navy); }

@@ -1,20 +1,12 @@
 <script setup lang="ts">
 // Sonuç (YGU Rehberi "BinaSonuc" düzeni, FireTech dili): bina periyodu, belirleyen bilgi, kullanım tablosu,
-// nasıl karar verildi, sonraki kontrol tarihi, detaylı analiz ön izlemesi ve uyarı. Metinler data/onDegerlendirme.ts'de.
+// nasıl karar verildi, detaylı analiz ön izlemesi ve uyarı. Metinler data/onDegerlendirme.ts'de.
 import { METIN, SINIFLAR } from '~/data/onDegerlendirme'
 import type { Sonuc, KullanimSonucu, Cevaplar } from '~/utils/onDegerlendirmeMotoru'
 
 const props = defineProps<{ sonuc: Sonuc; c: Cevaplar }>()
 const emit = defineEmits<{ duzenle: []; duzenleSoru: [id: string]; yeni: [] }>()
 
-const sonKontrol = ref('')
-const sonraki = computed(() => {
-  if (!sonKontrol.value || props.sonuc.nihai === null) return ''
-  const t = new Date(sonKontrol.value)
-  if (isNaN(t.getTime())) return ''
-  t.setFullYear(t.getFullYear() + props.sonuc.nihai)
-  return t.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-})
 const periyotHucre = (k: KullanimSonucu) => ({
   gecerli: `${k.periyot} yıl`, tanimsiz: 'EK-1’de tanımlı değil', belirlenemedi: 'Belirlenemedi', inceleme: 'Doğrulama gerekli',
   ana_parcasi: 'Ayrı periyot yok', ayri_yapi: 'Ayrıca değerlendirilir', eksik: '—'
@@ -87,14 +79,6 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
       <ol><li v-for="n in sonuc.notlar" :key="n">{{ n }}</li></ol>
     </div>
 
-    <!-- Sonraki kontrol -->
-    <div v-if="sonuc.genel === 'tabi'" class="card tarih">
-      <label>Daha önce periyodik kontrol yapıldıysa son kontrol raporunun tarihi
-        <input v-model="sonKontrol" type="date">
-      </label>
-      <p v-if="sonraki" class="sonraki">Bir sonraki periyodik kontrol: <strong>{{ sonraki }}</strong></p>
-    </div>
-
     <!-- Detaylı analiz -->
     <div class="card cta">
       <p class="analiz-etiket">{{ METIN.analizEtiket }}</p>
@@ -141,10 +125,6 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
 .uygulanan .sag strong { color: var(--gold); }
 .nokta { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
 .notlar ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
-.tarih label { display: flex; flex-direction: column; gap: 8px; font-weight: 500; }
-.tarih input { max-width: 220px; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; }
-.sonraki { margin-top: 10px; }
-.sonraki strong { font-family: var(--font-head); font-size: 20px; color: var(--gold); }
 .analiz-etiket { margin: 0; font-size: 12px; font-weight: 600; letter-spacing: .8px; text-transform: uppercase; color: var(--muted, #787878); }
 .analiz-adi { margin: 4px 0 14px; font-family: var(--font-head); font-size: 22px; font-weight: 700; line-height: 1.2; color: var(--navy); text-transform: none; }
 .basliklar { margin: 0 0 16px; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

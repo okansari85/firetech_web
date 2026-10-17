@@ -383,13 +383,14 @@ export const ALAN_TANIM = {
 }
 
 // ── Sonuç metinleri ───────────────────────────────────────────────────────────
+// Kullanıcı (17 Ekim): "Nasıl karar verildi" notlarında EK-1, BYKHY gibi atıf yok; yerine "mevzuat".
 export const METIN = {
   tabi: 'Periyodik Yangın Kontrolüne Tabisiniz',
   belirlenemedi: 'Kontrol Periyodunuz Henüz Belirlenemedi',
   tanimsizBaslik: 'Periyodik Kontrol Süresi Tanımlanmamış',
   tanimsizKonut: 'YGU EK-1’de bu yükseklikteki konutlar için periyodik kontrol süresi tanımlanmamıştır.',
-  tanimsizNot: 'Bu sonuç, BYKHY veya diğer düzenlemeler kapsamında yapınız için geçerli olabilecek yangın güvenliği, bakım, test ve işletme yükümlülüklerini ortadan kaldırmaz.',
-  karma: 'Aynı yapıda birden fazla bağımsız kullanım bulunduğundan, YGU EK-1 uyarınca kontrol periyodu düşük olan kullanımın süresi uygulanır.',
+  tanimsizNot: 'Bu sonuç, mevzuat kapsamında yapınız için geçerli olabilecek yangın güvenliği, bakım, test ve işletme yükümlülüklerini ortadan kaldırmaz.',
+  karma: 'Aynı yapıda birden fazla bağımsız kullanım bulunduğundan, mevzuat uyarınca kontrol periyodu düşük olan kullanımın süresi uygulanır.',
   ayriYapi: 'Ayrı yapıdaki kullanımlar bu yapının periyodunu değiştirmez; kendi yapıları olarak ayrıca değerlendirilir.',
   yardimci: 'Yardımcı / ortak alanlar ayrı kullanım sayılmaz; ana kullanımla birlikte değerlendirilir.',
   // Başlık listesinin üstü (müşteri örneği: "YAPINIZA ÖZEL ANALİZ BAŞLIKLARI" / "Apartman + Dönerci Yangın Güvenliği").

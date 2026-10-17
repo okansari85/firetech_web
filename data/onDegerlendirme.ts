@@ -99,7 +99,7 @@ export const KONAKLAMA_TURU: Secenek[] = [
   { deger: 'misafirhane', etiket: 'Misafirhane', grup: 'diger' },
   { deger: 'konukevi', etiket: 'Konukevi', grup: 'diger' },
   { deger: 'yurt', etiket: 'Öğrenci Yurdu' },
-  { deger: 'kamping', etiket: 'Kamping', aciklama: 'Bungalow, çadır, karavan / motokaravan yeri ve benzeri konaklama birimleri.' },
+  { deger: 'kamping', etiket: 'Kamping' },
   { deger: 'kamp', etiket: 'Kamp', grup: 'kamping' }
 ]
 export const KURUMSAL_TURU: Secenek[] = [
@@ -223,13 +223,17 @@ export const DEPO_MADDE: Secenek[] = [
   { deger: 'kismen', etiket: 'Evet, ama yalnızca bir kısmı' },
   { deger: 'bilmiyorum', etiket: 'Bilmiyorum' }
 ]
-// Yüksek tehlikeli yerler: kart metninin ilk cümlesindeki maddeler (soru maddeyi sorar); örnekler ikinci cümleden
+// Yüksek tehlikeli yerler: kart metnindeki maddelerin hepsi (Düzeltme 05)
 export const YH_FAALIYET: Secenek[] = [
-  { deger: 'gaz', etiket: 'Parlayıcı ve Patlayıcı Gazlar', ornek: 'LPG tesisleri, yanıcı gaz dolum tesisleri' },
-  { deger: 'patlayici', etiket: 'Patlayıcı Maddeler', ornek: 'Patlayıcı madde depoları' },
+  { deger: 'gaz', etiket: 'Parlayıcı ve Patlayıcı Gazlar' },
+  { deger: 'patlayici', etiket: 'Patlayıcı Maddeler' },
   { deger: 'sivi', etiket: 'Yanıcı Sıvılar' },
-  { deger: 'akaryakit', etiket: 'Akaryakıtlar', grup: 'sivi', ornek: 'Akaryakıt tesisleri' },
-  { deger: 'ozel_madde', etiket: 'Özel Tehlike Oluşturan Maddeler', ornek: 'Kimyasal madde işleme ve depolama alanları' }
+  { deger: 'akaryakit', etiket: 'Akaryakıtlar', grup: 'sivi' },
+  { deger: 'ozel_madde', etiket: 'Özel Tehlike Oluşturan Maddeler' },
+  { deger: 'akaryakit_lpg', etiket: 'Akaryakıt ve LPG Tesisleri', grup: 'sivi' },
+  { deger: 'gaz_dolum', etiket: 'Yanıcı Gaz Dolum Tesisleri', grup: 'gaz' },
+  { deger: 'patlayici_depo', etiket: 'Patlayıcı Madde Depoları', grup: 'patlayici' },
+  { deger: 'kimyasal', etiket: 'Kimyasal Madde İşleme ve Depolama Alanları' }
 ]
 export const YH_MOD: Secenek[] = [
   { deger: 'faaliyet', etiket: 'Üretiliyor, depolanıyor, dolduruluyor, boşaltılıyor veya satılıyor' },

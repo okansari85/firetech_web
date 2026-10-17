@@ -1,8 +1,8 @@
 <script setup lang="ts">
-// SİTE YÖNETİMİ (Düzeltme 03): deneme ödeme → sitenizi tanıyalım (kategoriler, sayılar) → yapı ve kullanım envanteri → sonuç.
+// SİTE YÖNETİMİ (Düzeltme 03): (üyelik → ödeme: /giris, /odeme) → sitenizi tanıyalım (kategoriler, sayılar) → yapı ve kullanım envanteri → sonuç.
 // Metinler data/siteYonetimi.ts; her kayıt ön değerlendirme motorunda "kayıt" modunda değerlendirilir. Backend'siz.
 import { SINIFLAR, METIN, type SinifKod } from '~/data/onDegerlendirme'
-import { SITE_UCRET, SITE_METIN, SITE_KATEGORILERI, SITE_KONUM, SITE_SONUC_GRUPLARI } from '~/data/siteYonetimi'
+import { SITE_METIN, SITE_KATEGORILERI, SITE_KONUM, SITE_SONUC_GRUPLARI } from '~/data/siteYonetimi'
 import { cevapEtiketi, akis, type Eylem } from '~/utils/onDegerlendirmeMotoru'
 import { useSiteYonetimi, kayitTamam, kayitSorusu, kayitSonucu, kayitDegerlendirme, type SiteKayit, type SiteKonum } from '~/composables/useSiteYonetimi'
 
@@ -10,7 +10,9 @@ useSeoMeta({ title: 'Site Yönetimi', description: 'Sitenizdeki yapı ve ortak k
 
 const sy = useSiteYonetimi()
 const { d } = sy
-const fiyat = SITE_UCRET.toLocaleString('tr-TR', { minimumFractionDigits: 2 })
+// Ödeme yapılmadan bu sayfa açılmaz: üye değilse giriş / üyelik, sonra ödeme.
+const { odendi, analiziBaslat } = useUyelik()
+onMounted(() => { if (!odendi('site')) analiziBaslat('site') })
 
 // ── Sitenizi tanıyalım ──
 const kategoriSec = (kod: string) => {
@@ -102,17 +104,8 @@ const yeni = () => { sy.sifirla() }
     <div class="wrap">
       <SectionTag num="04" label="Site Yönetimi" />
 
-      <!-- 1) Deneme ödeme ekranı -->
-      <div v-if="d.adim === 'odeme'" class="card dar odeme">
-        <h1 class="baslik">Site / Yerleşke Yönetimi</h1>
-        <p class="muted">Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi</p>
-        <div class="tutar"><span>Ödenecek tutar</span><strong>{{ fiyat }} TL</strong></div>
-        <button type="button" class="btn analiz-btn" @click="sy.ode()">Ödemeyi Tamamla <AppIcon name="arrow" class="ico" /></button>
-        <p class="deneme"><AppIcon name="alert" /> Deneme ödeme ekranı: kartınızdan çekim yapılmaz.</p>
-      </div>
-
       <!-- 2) Sitenizi tanıyalım -->
-      <div v-else-if="d.adim === 'tanit'" class="card dar">
+      <div v-if="d.adim === 'tanit'" class="card dar">
         <h1 class="baslik">{{ SITE_METIN.baslik }}</h1>
         <p class="muted">{{ SITE_METIN.aciklama }}</p>
         <label class="alan">{{ SITE_METIN.siteAdi }}
@@ -239,8 +232,6 @@ const yeni = () => { sy.sifirla() }
 .analiz-btn { justify-content: center; min-height: 58px; background: var(--navy); border-color: var(--navy); color: var(--gold-2); font-size: 19px; }
 .analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
 .analiz-btn .ico, .btn .ico { width: 20px; height: 20px; }
-.odeme .tutar { display: flex; justify-content: space-between; align-items: baseline; padding: 16px 18px; border-radius: 10px; background: var(--navy); color: #c9d3de; }
-.odeme .tutar strong { font-family: var(--font-head); font-size: 40px; color: var(--gold-2); }
 .deneme { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--muted); }
 .deneme svg { width: 18px; height: 18px; }
 .envanter { max-width: 900px; margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }

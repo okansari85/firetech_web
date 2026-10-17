@@ -1,4 +1,6 @@
 <script setup lang="ts">
+// Taslak üyelik: giriş yapılmışsa "Hesabım" (composables/useUyelik.ts)
+const { uye } = useUyelik()
 const links = [
   { to: '/', label: 'Ana Sayfa' },
   { to: '/ekosistem', label: 'Ekosistem' },
@@ -23,7 +25,7 @@ watch(() => route.fullPath, () => { open.value = false })
 
       <nav class="nav" :class="{ open }" aria-label="Ana menü">
         <NuxtLink v-for="l in links" :key="l.to" :to="l.to" class="nav-link">{{ l.label }}</NuxtLink>
-        <NuxtLink to="/giris" class="btn ghost nav-btn">Giriş</NuxtLink>
+        <NuxtLink to="/giris" class="btn ghost nav-btn"><ClientOnly>{{ uye ? 'Hesabım' : 'Giriş' }}<template #fallback>Giriş</template></ClientOnly></NuxtLink>
       </nav>
 
       <button class="menu-btn" type="button" :aria-expanded="open" aria-label="Menüyü aç / kapat" @click="open = !open">

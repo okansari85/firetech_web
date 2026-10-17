@@ -6,11 +6,11 @@ import { hesapla, mevcutSoru, type Cevaplar, type Sonuc } from '~/utils/onDegerl
 
 export type SiteKonum = 'ayri' | 'icinde' | 'acik'
 export type SiteKayit = { id: string; kat: string; ad: string; konum?: SiteKonum; bagli?: string; sinif?: SinifKod; c: Cevaplar }
-export type SiteAdim = 'odeme' | 'tanit' | 'envanter' | 'sonuc'
-type Durum = { adim: SiteAdim; odendi: boolean; siteAdi: string; secili: string[]; sayilar: Record<string, number>; kayitlar: SiteKayit[]; aktif: string | null }
+export type SiteAdim = 'tanit' | 'envanter' | 'sonuc'
+type Durum = { adim: SiteAdim; siteAdi: string; secili: string[]; sayilar: Record<string, number>; kayitlar: SiteKayit[]; aktif: string | null }
 
 const ANAHTAR = 'firetech_site_yonetimi'
-const bos = (): Durum => ({ adim: 'odeme', odendi: false, siteAdi: '', secili: [], sayilar: {}, kayitlar: [], aktif: null })
+const bos = (): Durum => ({ adim: 'tanit', siteAdi: '', secili: [], sayilar: {}, kayitlar: [], aktif: null })
 
 export const kayitDegerlendirme = (k: SiteKayit) => ({ esas: k.sinif ?? null, c: k.c, kayit: true })
 // Kaydın bekleyen ölçüt sorusu (yoksa null)
@@ -20,13 +20,12 @@ export const kayitSonucu = (k: SiteKayit): Sonuc | null => (k.sinif && k.konum !
 
 export const useSiteYonetimi = () => {
   const d = useState<Durum>('siteYonetimi', bos)
-  if (import.meta.client && d.value.adim === 'odeme' && !d.value.odendi) {
+  if (import.meta.client && !d.value.siteAdi && !d.value.kayitlar.length) {
     try { const k = sessionStorage.getItem(ANAHTAR); if (k) d.value = JSON.parse(k) } catch { /* depolama kapalı */ }
   }
   const kaydet = () => { if (import.meta.client) try { sessionStorage.setItem(ANAHTAR, JSON.stringify(d.value)) } catch { /* yok say */ } }
   const guncelle = (p: Partial<Durum>) => { d.value = { ...d.value, ...p }; kaydet() }
 
-  const ode = () => guncelle({ odendi: true, adim: 'tanit' })
   // Seçilen kategoriler ve sayılara göre kayıtlar (K1…K8, T1…); var olan kayıtların bilgileri korunur.
   const envanterOlustur = () => {
     const eski = new Map(d.value.kayitlar.map(k => [k.id, k]))
@@ -43,5 +42,5 @@ export const useSiteYonetimi = () => {
     guncelle({ kayitlar: d.value.kayitlar.map(k => (k.id === id ? { ...k, ...p } : k)) })
   const sifirla = () => { d.value = bos(); kaydet() }
 
-  return { d, guncelle, ode, envanterOlustur, kayitGuncelle, sifirla }
+  return { d, guncelle, envanterOlustur, kayitGuncelle, sifirla }
 }

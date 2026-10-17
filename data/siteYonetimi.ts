@@ -1,8 +1,6 @@
 // SİTE YÖNETİMİ (Düzeltme 03, 17 Ekim): site / yerleşkedeki bütün yapı ve alanların periyodik kontrol değerlendirmesi.
 // Metinler müşterinin "Düzeltmeler" belgesinden (bölüm 5–8) ve belgedeki ekran görüntülerinden birebir.
-// Ödeme ekranı şimdilik deneme: ücret gösterilir, çekim yapılmaz, kart bilgisi alınmaz.
-
-export const SITE_UCRET = 19.9
+// Ücret: data/urunler.ts (site); ödeme ekranı taslak (pages/odeme.vue).
 
 export const SITE_METIN = {
   baslik: 'SİTENİZİ TANIYALIM',

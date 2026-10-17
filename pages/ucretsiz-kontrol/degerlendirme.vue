@@ -7,6 +7,7 @@ import { cevapEtiketi, type Eylem } from '~/utils/onDegerlendirmeMotoru'
 useSeoMeta({ title: 'Ücretsiz Ön Değerlendirme', description: 'Binanızın periyodik yangın kontrol süresini birkaç soruda öğrenin.' })
 
 const od = useOnDegerlendirme()
+const { analiziBaslat } = useUyelik()
 const { d, mevcut, cevaplananlar, sonuc, tamam } = od
 const soruAlani = ref<HTMLElement | null>(null)
 
@@ -21,7 +22,7 @@ const kaydir = () => nextTick(() => {
 })
 const cevap = (v: any) => { if (mevcut.value) { od.cevapla(mevcut.value.id, v); kaydir() } }
 const eylem = (e: Eylem) => {
-  if (e.tip === 'sinif-sec') { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') } else if (e.tip === 'sayfa' && e.yol) navigateTo(e.yol)
+  if (e.tip === 'sinif-sec') { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi') } else if (e.tip === 'sayfa' && e.urun) analiziBaslat(e.urun)
   else { od.eylem(e); kaydir() }
 }
 const geri = () => { if (!od.geri()) navigateTo('/ucretsiz-kontrol/kullanim-sinifi') }

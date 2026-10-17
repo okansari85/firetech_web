@@ -12,7 +12,8 @@ export type Cevaplar = Record<string, any>
 // kayit: Site Yönetimi envanterindeki tek bir yapı / alan (yalnız yapı bilgileri sorulur; konutta "Site" seçeneği ve "başka kullanım" adımı yok).
 export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolean }
 
-export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa'; sinif?: SinifKod; ek?: Cevaplar; yol?: string }
+// sayfa: ücretli ürüne geçiş (üyelik → ödeme → ürün; composables/useUyelik.ts)
+export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa'; sinif?: SinifKod; ek?: Cevaplar; urun?: 'bina' | 'site' }
 export type Soru = {
   id: string
   tip: 'secim' | 'coklu' | 'sayi' | 'metin' | 'bilgi'
@@ -166,7 +167,7 @@ export function akis(d: Degerlendirme): Soru[] {
       if (c.konutTuru === 'site') {
         need({ id: 'siteKullanici', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Site kullanıcısı', baslik: 'Hangi kullanıcı olarak devam etmek istiyorsunuz?', ust: { baslik: 'SİTENİZİ TANIYALIM' }, aciklama: 'Size uygun soruları gösterebilmemiz için lütfen seçim yapın.', secenekler: SITE_KULLANICI })
         // Site Yönetimi: ayrı sayfa (pages/ucretsiz-kontrol/site-yonetimi.vue; ödeme ekranı şimdilik deneme)
-        if (c.siteKullanici === 'yonetim') need({ id: 'siteYonetimi', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Site / Yerleşke Yönetimi', aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi', eylemler: [{ etiket: METIN.cta, tip: 'sayfa', yol: '/ucretsiz-kontrol/site-yonetimi' }] })
+        if (c.siteKullanici === 'yonetim') need({ id: 'siteYonetimi', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Site / Yerleşke Yönetimi', aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi', eylemler: [{ etiket: METIN.cta, tip: 'sayfa', urun: 'site' }] })
         need({ id: 'siteTuru', tip: 'secim', grup: 'yapi', sinif: 'konut', kisaAd: 'Site türü', baslik: 'Yapınız aşağıdakilerden hangisi?', ust: { baslik: tur.etiket, aciklama: tur.aciklama }, secenekler: SITE_TURU })
       }
       if (c.konutTuru === 'site') need({ id: 'blokAdi', tip: 'metin', grup: 'yapi', istegeBagli: true, kisaAd: 'Değerlendirilen blok', baslik: 'Hangi yapıyı / bloğu değerlendirmek istiyorsunuz?', aciklama: 'Site tek bir yapı gibi değerlendirilmez; her blok ayrı değerlendirilir. Blok adı isteğe bağlıdır (ör. A Blok).' })

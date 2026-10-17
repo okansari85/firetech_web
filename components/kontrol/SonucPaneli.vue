@@ -6,6 +6,8 @@ import type { Sonuc, KullanimSonucu, Cevaplar } from '~/utils/onDegerlendirmeMot
 
 const props = defineProps<{ sonuc: Sonuc; c: Cevaplar }>()
 const emit = defineEmits<{ duzenle: []; duzenleSoru: [id: string]; yeni: [] }>()
+// Detaylı analiz: üye değilse giriş / üyelik → ödeme (taslak; composables/useUyelik.ts)
+const { analiziBaslat } = useUyelik()
 
 const periyotHucre = (k: KullanimSonucu) => ({
   gecerli: `${k.periyot} yıl`, tanimsiz: 'EK-1’de tanımlı değil', belirlenemedi: 'Belirlenemedi', inceleme: 'Doğrulama gerekli',
@@ -62,7 +64,7 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
       <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
       <p class="deger">{{ METIN.degerCumlesi }}</p>
       <div class="dugmeler">
-        <NuxtLink to="/giris" class="btn analiz-btn">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></NuxtLink>
+        <button type="button" class="btn analiz-btn" @click="analiziBaslat('bina')">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></button>
         <button type="button" class="btn ghost" @click="emit('duzenle')">Cevapları Düzenle</button>
         <button type="button" class="link" @click="emit('yeni')">Yeni değerlendirme</button>
       </div>

@@ -22,6 +22,10 @@ const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi
 const oneriler = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif || esasSoru.value)
   .sort((a, b) => Number(b.sinif === props.soru.sinif) - Number(a.sinif === props.soru.sinif)))
 const yaziTemiz = computed(() => yazi.value.trim())
+const elleTur = ref('')
+watch(yazi, () => { elleTur.value = '' })
+const tanimliTurler = computed(() => (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
+const elleSec = () => emit('cevap', elleTur.value, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'elle' })
 const oneriSec = (e: Eslesme) => {
   const ad = yaziTemiz.value
   if (e.sinif === props.soru.sinif) {
@@ -33,7 +37,6 @@ const oneriSec = (e: Eslesme) => {
   const ek = turId ? { [turId]: e.tur ?? 'kendim', [`${turId}_yazi`]: ad, [`${turId}_eslesme`]: e.tur ? 'tur' : 'sinif' } : { yaziAd: ad }
   emit('eylem', { etiket: '', tip: 'esas', sinif: e.sinif, ek })
 }
-const eslesmeYok = () => emit('cevap', 'kendim', { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'yok' })
 
 const sayiDegeri = computed(() => { const n = parseFloat(sayi.value.replace(/\./g, '').replace(',', '.')); return isFinite(n) && n > 0 ? n : null })
 const toggle = (v: string) => { coklu.value = coklu.value.includes(v) ? coklu.value.filter(x => x !== v) : [...coklu.value, v] }
@@ -92,9 +95,17 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
             <span class="devam">Devam Et <AppIcon name="arrow" /></span>
           </button>
         </div>
+        <!-- Eşleşme yoksa devam edilemez (kullanıcı kararı, 17 Ekim): listeden seçilir ya da tanınan bir ad yazılır -->
+        <!-- Eşleşme yoksa kullanıcı tanımlı türlerden birini seçer (kullanıcı kararı, 17 Ekim); seçmeden devam edilemez -->
         <div v-else class="oneri yok">
-          <p><strong>Eşleştirme yapılamadı — doğrulama gerekli</strong></p>
-          <button type="button" class="btn gold-btn" @click="eslesmeYok">Devam Et <AppIcon name="arrow" class="ico" /></button>
+          <p><strong>Eşleştirme yapılamadı</strong></p>
+          <label class="elle">Tanımlı türlerden birini seçin
+            <select v-model="elleTur">
+              <option value="">Seçin</option>
+              <option v-for="o in tanimliTurler" :key="o.deger" :value="o.deger">{{ o.etiket }}</option>
+            </select>
+          </label>
+          <button type="button" class="btn gold-btn" :disabled="!elleTur" @click="elleSec">Devam Et <AppIcon name="arrow" class="ico" /></button>
         </div>
       </template>
     </div>
@@ -173,7 +184,10 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .oneri-kart strong { font-family: var(--font-head); font-size: 17px; color: var(--navy); }
 .oneri-kart .devam { display: inline-flex; align-items: center; gap: 6px; flex: none; font-family: var(--font-head); font-weight: 700; color: var(--gold); }
 .oneri-kart .devam svg { width: 18px; height: 18px; }
-.oneri.yok { flex-direction: row; justify-content: space-between; align-items: center; flex-wrap: wrap; }
+.oneri.yok { flex-direction: row; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; }
+.oneri.yok p { flex-basis: 100%; }
+.elle { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; font-weight: 600; color: var(--navy); }
+.elle select { min-height: 46px; padding: 0 12px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-weight: 400; background: #fff; }
 .ust-kutu { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
 .ust-kutu strong { font-family: var(--font-head); font-size: 20px; color: var(--navy); }
 .ust-kutu p { margin-top: 6px; font-size: 15px; color: var(--muted); }

@@ -19,7 +19,23 @@ const yazi = ref('')
 const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi.value) : []))
 // Bu sorunun sınıfındaki eşleşmeler; esas kullanımda başka sınıfa düşenler de önerilir (sınıf değiştirilir)
 // Öneriler yalnız bu sorunun listesinden (kullanıcı kararı, 17 Ekim): başka sınıf önerilmez; eşleşme yoksa listeden seçilir
-const oneriler = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif && (props.soru.secenekler ?? []).some(o => o.deger === e.tur)))
+const kuralOnerileri = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif && (props.soru.secenekler ?? []).some(o => o.deger === e.tur)))
+// Kurallar bulamazsa yapay zekâ (yalnız bu listenin seçenekleri); beklerken "analiz ediliyor"
+const yzTur = ref<string | null>(null)
+const yzDurum = ref<'bos' | 'bekliyor' | 'bitti'>('bos')
+let yzZaman: ReturnType<typeof setTimeout> | undefined
+watch(() => [yazi.value, kuralOnerileri.value.length] as const, ([y, n]) => {
+  clearTimeout(yzZaman); yzTur.value = null
+  const metin = (y as string).trim()
+  if (n || metin.length < 3 || !props.soru.sinif) { yzDurum.value = 'bos'; return }
+  yzDurum.value = 'bekliyor'
+  yzZaman = setTimeout(async () => {
+    const tur = await yzEslestir(metin, SINIFLAR[props.soru.sinif!].ad, (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'))
+    if (yazi.value.trim() !== metin) return
+    yzTur.value = tur; yzDurum.value = 'bitti'
+  }, 600)
+})
+const oneriler = computed<Eslesme[]>(() => (kuralOnerileri.value.length ? kuralOnerileri.value : yzTur.value ? [{ sinif: props.soru.sinif!, tur: yzTur.value, terim: 'yz' }] : []))
 const yaziTemiz = computed(() => yazi.value.trim())
 const elleTur = ref('')
 watch(yazi, () => { elleTur.value = '' })
@@ -85,6 +101,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
           </button>
         </div>
         <!-- Eşleşme yoksa devam edilemez (kullanıcı kararı, 17 Ekim): listeden seçilir ya da tanınan bir ad yazılır -->
+        <p v-else-if="yzDurum === 'bekliyor'" class="oneri bekliyor"><AppIcon name="isilti" class="isilti" /> Analiz ediliyor…</p>
         <!-- Eşleşme yoksa kullanıcı tanımlı türlerden birini seçer (kullanıcı kararı, 17 Ekim); seçmeden devam edilemez -->
         <div v-else class="oneri yok">
           <p><strong>Eşleştirme yapılamadı</strong></p>
@@ -173,6 +190,7 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .oneri-kart strong { font-family: var(--font-head); font-size: 17px; color: var(--navy); }
 .oneri-kart .devam { display: inline-flex; align-items: center; gap: 6px; flex: none; font-family: var(--font-head); font-weight: 700; color: var(--gold); }
 .oneri-kart .devam svg { width: 18px; height: 18px; }
+.oneri.bekliyor { flex-direction: row; align-items: center; gap: 10px; font-family: var(--font-head); font-weight: 700; color: var(--navy); }
 .oneri.yok { flex-direction: row; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; }
 .oneri.yok p { flex-basis: 100%; }
 .elle { flex: 1 1 260px; display: flex; flex-direction: column; gap: 6px; font-weight: 600; color: var(--navy); }

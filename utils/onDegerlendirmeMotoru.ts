@@ -4,7 +4,8 @@
 import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
   KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
-  DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, type SinifKod, type Secenek
+  DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
+  type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
 
 export type Cevaplar = Record<string, any>
@@ -340,6 +341,50 @@ function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean): SinifCikti {
   }
 }
 
+// ── Detaylı analiz başlıkları ────────────────────────────────────────────────
+// Esas kullanım + yapıda birlikte bulunan diğer kullanımlar (bağımsız veya yardımcı; ayrı yapılar hariç), alt türleriyle.
+// Alt tür: esas kullanımda sınıfın tür sorusu; diğer kullanımda yalnız sorulanlar (toplanma, depolama). Metinler data/onDegerlendirme.ts.
+const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; digerde?: boolean }>> = {
+  konut: { id: 'konutTuru', secenekler: KONUT_TURU },
+  konaklama: { id: 'konaklamaTuru', secenekler: KONAKLAMA_TURU },
+  kurumsal: { id: 'kurumsalTuru', secenekler: KURUMSAL_TURU },
+  ticaret: { id: 'ticaretTuru', secenekler: TICARET_TURU },
+  toplanma: { id: 'toplanmaTuru', secenekler: TOPLANMA_TURU, digerde: true },
+  depolama: { id: 'depoTuru', secenekler: DEPO_TURU, digerde: true },
+  yuksek: { id: 'yhFaaliyet', secenekler: YH_FAALIYET }
+}
+function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): string[] {
+  const birlikte = kullanimlar.filter(k => k.sinif && (k.iliski === 'esas' || k.iliski === 'ayni' || k.iliski === 'yardimci'))
+  if (!birlikte.length) return METIN.basliklar
+  const parcalar = birlikte.map((k) => {
+    const s = k.sinif!
+    const soru = TUR_SORUSU[s]
+    const tur: string | undefined = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`d_${soru.id}`] : undefined)
+    const ad = (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
+    const liste = (tur && ANALIZ_BASLIKLARI[s].tur?.[tur]) || ANALIZ_BASLIKLARI[s].varsayilan
+    return { ad, liste, ayni: k.iliski === 'ayni' }
+  })
+  const ortak: string[] = []
+  if (parcalar.length > 1) {
+    const adlar = parcalar.map((p, i) => (i ? kucuk(p.ad) : p.ad))
+    const birlesik = adlar.length === 2 ? `${adlar[0]} ile ${adlar[1]}` : `${adlar.slice(0, -1).join(', ')} ve ${adlar[adlar.length - 1]}`
+    ortak.push(BIRLIKTE_BASLIKLARI[0]!.replace('{A}', birlesik))
+    if (parcalar.some(p => p.ayni)) ortak.push(BIRLIKTE_BASLIKLARI[1]!)
+  }
+  // En fazla ANALIZ_BASLIK_SINIRI başlık: ortak başlıklar her zaman kalır; kullanımlardan önce her birinin 1., yer kalırsa 2. başlığı.
+  const yer = ANALIZ_BASLIK_SINIRI - ortak.length
+  const kullanimBasliklari: string[] = []
+  for (let sira = 0; sira < 2; sira++) {
+    for (const p of parcalar) {
+      const b = p.liste[sira]
+      if (b && !kullanimBasliklari.includes(b) && kullanimBasliklari.length < yer) kullanimBasliklari.push(b)
+    }
+  }
+  // Ekranda kullanım sırasıyla (esas önce) dursun.
+  const sirali = parcalar.flatMap(p => p.liste.filter(b => kullanimBasliklari.includes(b)))
+  return [...new Set([...sirali, ...ortak])]
+}
+
 export function hesapla(d: Degerlendirme): Sonuc {
   const c = d.c
   const kullanimlar: KullanimSonucu[] = []
@@ -370,7 +415,5 @@ export function hesapla(d: Degerlendirme): Sonuc {
   if (kullanimlar.some(k => k.durum === 'ana_parcasi')) notlar.push(METIN.yardimci)
   if (kullanimlar.some(k => k.durum === 'ayri_yapi')) notlar.push(METIN.ayriYapi)
   if (genel === 'tanimsiz') notlar.push(METIN.tanimsizNot)
-  const siniflar = [...new Set(etkin.map(k => k.sinif).filter(Boolean))] as SinifKod[]
-  const ozel = siniflar.length === 1 ? `${kisa(siniflar[0]!)} kullanımına özgü yangın güvenliği şartları` : 'Seçilen kullanım türlerine özgü yangın güvenliği şartları'
-  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, basliklar: [...METIN.basliklar, ozel] }
+  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, basliklar: analizBasliklari(c, kullanimlar) }
 }

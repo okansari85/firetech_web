@@ -97,7 +97,6 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
 
     <!-- Detaylı analiz -->
     <div class="card cta">
-      <h3>{{ METIN.basliklarGiris }}</h3>
       <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><AppIcon name="check" />{{ b }}</li></ul>
       <p class="deger">{{ METIN.degerCumlesi }}</p>
       <div class="dugmeler">

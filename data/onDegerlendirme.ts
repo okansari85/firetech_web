@@ -279,6 +279,103 @@ export const YARDIM = {
   }
 }
 
+// ── Sonuçtaki "detaylı analiz" başlıkları ─────────────────────────────────────
+// Müşteri (17 Ekim): başlıklar kullanıcının seçtiği yapı türü, alt türü ve diğer kullanımlara göre oluşturulsun
+// (ör. Apartman + Kafe → apartmana, kafeye ve ikisinin birlikteliğine özgü başlıklar). Claude taslağı; FireTech onayı bekliyor.
+// Her kullanım için alt türe özel başlıklar (yoksa sınıfın varsayılanı); birden fazla kullanım varsa BIRLIKTE başlıkları eklenir.
+// Alt türün başlıklarda geçen kısa adı: seçenek etiketinden farklı olması gerekenler.
+export const KULLANIM_KISA_AD: Record<string, string> = {
+  mustakil: 'Müstakil konut', site: 'Site', yurt: 'Yurt', diger: '',
+  egitim: 'Eğitim yapısı', saglik: 'Sağlık yapısı', ceza: 'Ceza infaz kurumu',
+  restoran: 'Restoran / kafe', salon: 'Salon', bar: 'Bar / gece kulübü', muze: 'Müze', sergi: 'Sergi alanı', ibadet: 'İbadethane',
+  spor: 'Spor salonu', fitness: 'Fitness salonu', terminal: 'Terminal', stadyum: 'Stadyum / tribün',
+  depo: 'Depo', arsiv: 'Arşiv', silo: 'Silo / tank', ahir: 'Ahır', otopark: 'Otopark', agir_vasita: 'Araç deposu',
+  hal: 'Hal', toptanci: 'Toptancı sitesi', kapali_carsi: 'Kapalı çarşı', yedek_parca: 'Yedek parça satış yeri', benzeri: 'Ticari alan',
+  gaz: 'Parlayıcı gaz tesisi', patlayici: 'Patlayıcı madde tesisi', sivi: 'Akaryakıt tesisi'
+}
+// Alt türü sorulmayan ya da alt türüne özel başlık yazılmamış kullanımlarda sınıfın kısa adı kullanılır.
+export const SINIF_KISA_AD: Record<SinifKod, string> = {
+  konut: 'Konut', konaklama: 'Konaklama tesisi', kurumsal: 'Kurumsal yapı', buro: 'Büro', ticaret: 'Ticari alan',
+  endustri: 'Üretim alanı', toplanma: 'Toplanma alanı', depolama: 'Depolama alanı', yuksek: 'Tehlikeli madde alanı'
+}
+export const ANALIZ_BASLIKLARI: Record<SinifKod, { varsayilan: string[]; tur?: Record<string, string[]> }> = {
+  konut: {
+    varsayilan: ['Konutta kaçış yolları ve çıkışlar', 'Kazan dairesi, baca ve bodrum riskleri'],
+    tur: {
+      mustakil: ['Müstakil konutta kaçış ve söndürme cihazları', 'Isıtma, baca ve mutfak kaynaklı yangın riskleri'],
+      apartman: ['Apartman merdiveni ve kaçış yolları', 'Kazan dairesi, bodrum ve otopark güvenliği'],
+      site: ['Site içi itfaiye erişimi ve yangın hidrantları', 'Blok merdivenleri ve kaçış yolları']
+    }
+  },
+  konaklama: {
+    varsayilan: ['Odalarda duman algılama ve sesli uyarı', 'Misafir tahliyesi, yönlendirme ve acil aydınlatma'],
+    tur: {
+      yurt: ['Yatakhanelerde duman algılama ve uyarı', 'Gece tahliyesi ve kat koridorları'],
+      kamping: ['Konaklama birimleri arasındaki mesafeler', 'Kamp alanında söndürme ve toplanma noktası'],
+      tatil_koyu: ['Tatil köyü yapıları arasında itfaiye erişimi', 'Misafir tahliyesi, yönlendirme ve acil aydınlatma']
+    }
+  },
+  kurumsal: {
+    varsayilan: ['Kurumsal yapıda kaçış yolları ve tahliye', 'Algılama, alarm ve acil durum planı'],
+    tur: {
+      egitim: ['Öğrenci tahliyesi ve kaçış yolları', 'Laboratuvar, atölye ve mutfak riskleri'],
+      saglik: ['Hasta tahliyesi ve yatay kaçış (kompartıman)', 'Tıbbi gaz ve oksijen güvenliği'],
+      ceza: ['Kilitli kapılarla kontrollü tahliye', 'Duman kontrolü ve personel müdahalesi']
+    }
+  },
+  buro: { varsayilan: ['Büro katlarında kaçış yolları ve çıkışlar', 'Arşiv, sunucu ve elektrik odası güvenliği'] },
+  ticaret: {
+    varsayilan: ['Satış alanında kaçış mesafeleri ve çıkışlar', 'Raf, ambalaj ve ürün kaynaklı yangın yükü'],
+    tur: {
+      market: ['Satış alanında kaçış mesafeleri ve çıkışlar', 'Soğutma, elektrik panoları ve depo bölümü'],
+      supermarket: ['Geniş satış alanında kaçış ve yönlendirme', 'Soğutma, elektrik panoları ve depo bölümü'],
+      tamirhane: ['Kaynak, kesme ve sıcak çalışma riskleri', 'Boya, yağ ve yanıcı sıvı depolama'],
+      yedek_parca: ['Yağ, lastik ve yanıcı ürün depolaması', 'Satış alanında kaçış ve çıkışlar'],
+      kapali_carsi: ['Çarşı içi kaçış yolları ve çıkışlar', 'Dükkânlar arası yangın ayırımı'],
+      pasaj: ['Pasaj içi kaçış yolları ve çıkışlar', 'Dükkânlar arası yangın ayırımı']
+    }
+  },
+  endustri: { varsayilan: ['Üretim alanında yangın yükü ve tehlike sınıfı', 'Makine, toz ve yanıcı madde riskleri'] },
+  toplanma: {
+    varsayilan: ['Kalabalık için çıkış kapasitesi ve kaçış', 'Acil aydınlatma ve yönlendirme'],
+    tur: {
+      restoran: ['Mutfak davlumbazı ve yağ yangınları', 'Müşteri alanında çıkış kapasitesi'],
+      salon: ['Oturma düzeni ve çıkış kapasitesi', 'Sahne, perde ve dekor malzemeleri'],
+      bar: ['Kalabalık yoğunluğu ve çıkış kapasitesi', 'Dekor, ses-ışık ve elektrik riskleri'],
+      muze: ['Eserleri koruyan söndürme yöntemleri', 'Ziyaretçi tahliyesi ve yönlendirme'],
+      sergi: ['Sergi malzemelerinin yangın yükü', 'Ziyaretçi tahliyesi ve yönlendirme'],
+      ibadet: ['Kalabalık tahliyesi ve çıkış kapıları', 'Isıtma ve elektrik tesisatı riskleri'],
+      spor: ['Tribün ve salon tahliyesi', 'Soyunma, kazan ve teknik hacimler'],
+      fitness: ['Salon tahliyesi ve çıkışlar', 'Elektrikli cihaz ve sauna riskleri'],
+      terminal: ['Yolcu tahliyesi ve duman kontrolü', 'Bekleme alanlarında yönlendirme ve anons'],
+      stadyum: ['Tribün tahliyesi ve çıkış kapasitesi', 'Kalabalık yönetimi ve acil durum planı']
+    }
+  },
+  depolama: {
+    varsayilan: ['İstif yüksekliği ve yangın yükü', 'Depoda söndürme ve algılama sistemleri'],
+    tur: {
+      depo: ['Raf / istif yüksekliği ve yangın yükü', 'Depoda sprinkler ve algılama'],
+      arsiv: ['Arşivde yangın yükü ve bölmeler', 'Arşive uygun söndürme yöntemi'],
+      silo: ['Toz patlaması ve tutuşma riskleri', 'Silo / tank çevresinde güvenlik mesafeleri'],
+      ahir: ['Hayvan tahliyesi ve çıkışlar', 'Yem, saman ve kuru ot depolaması'],
+      otopark: ['Otoparkta duman tahliyesi ve havalandırma', 'Araç yangınlarına karşı söndürme'],
+      agir_vasita: ['Araç yakıtı ve büyük araç yangınları', 'Duman tahliyesi ve itfaiye erişimi']
+    }
+  },
+  yuksek: {
+    varsayilan: ['Tehlikeli madde depolama ve güvenlik mesafeleri', 'Patlama ve tutuşma kaynaklarının kontrolü'],
+    tur: {
+      gaz: ['LPG / parlayıcı gaz sızıntısı ve gaz algılama', 'Patlamaya karşı ekipman ve havalandırma'],
+      patlayici: ['Patlayıcı madde depolama ve güvenlik mesafeleri', 'Tutuşma kaynaklarının kontrolü'],
+      sivi: ['Akaryakıt tankları, dökülme ve topraklama', 'Dolum alanında söndürme ve köpük sistemleri']
+    }
+  }
+}
+// Birden fazla kullanım (aynı yapıda bağımsız veya yardımcı) seçildiğinde eklenenler. {A} → "Apartman ile Restoran / kafe" ya da "Apartman, market ve restoran / kafe".
+export const BIRLIKTE_BASLIKLARI = ['{A} arasında yangın ayırımı', 'Ortak kaçış yolları ve çıkışlar']
+// Sonuçta en fazla kaç başlık gösterilir (müşteri, 17 Ekim: 8).
+export const ANALIZ_BASLIK_SINIRI = 8
+
 // Ticaret: alan sorusunda "Bilmiyorum / Emin değilim" seçilince gösterilen tanım; ardından m² sorulur (müşteri, 10 Ekim).
 export const ALAN_TANIM = {
   metin: 'Yapı inşaat alanı, yalnızca işletmenizin veya bağımsız bölümünüzün kullandığı alan değildir. Değerlendirilen yapının bütün katlarını kapsayan yapı inşaat alanıdır. Varsa ruhsat, yapı kullanma izin belgesi veya onaylı projedeki yapı inşaat alanı bilgisini esas alın.',
@@ -295,7 +392,7 @@ export const METIN = {
   karma: 'Aynı yapıda birden fazla bağımsız kullanım bulunduğundan, YGU EK-1 uyarınca kontrol periyodu düşük olan kullanımın süresi uygulanır.',
   ayriYapi: 'Ayrı yapıdaki kullanımlar bu yapının periyodunu değiştirmez; kendi yapıları olarak ayrıca değerlendirilir.',
   yardimci: 'Yardımcı / ortak alanlar ayrı kullanım sayılmaz; ana kullanımla birlikte değerlendirilir.',
-  basliklarGiris: 'Bu yapı için detaylı analizde öne çıkan başlıklar:',
+  // Kullanım bilgisi yokken (yedek) gösterilen genel başlıklar; normalde ANALIZ_BASLIKLARI kullanılır.
   basliklar: ['Kaçış ve Tahliye', 'Yangın Kapıları ve Bölmeleri', 'Acil Durum Aydınlatma ve Yönlendirme', 'Algılama ve Alarm Sistemleri', 'Söndürme Sistemleri'],
   degerCumlesi: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini görün, eksikleri önceden belirleyin ve periyodik kontrole hazırlanın.',
   cta: 'Detaylı Yangın Güvenliği Analizini Başlat',

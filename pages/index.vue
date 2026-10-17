@@ -8,7 +8,7 @@ useSeoMeta({
 
 const adimlar = [
   { baslik: 'Ücretsiz Ön Değerlendirme', metin: 'Yapınızın kullanım sınıfını ve periyodik yangın kontrol süresini birkaç basit soruyla öğrenin.', ikon: 'clock', etiket: '2 dakika · Ücretsiz' },
-  { baslik: 'Detaylı Analiz', metin: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini EK-6 Periyodik Kontrol Formu omurgasıyla, sade sorularla yanıtlayın.', ikon: 'search', etiket: 'Analiz başına tek ödeme' },
+  { baslik: 'Detaylı Analiz', metin: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini sade sorularla yanıtlayın.', ikon: 'search', etiket: 'Analiz başına tek ödeme' },
   { baslik: 'PDF Hazırlık Raporu', metin: 'Yangın güvenliği hazırlık durumunuzu, öne çıkan başlıkları, öncelikli yapılacakları ve hazırlamanız gereken belgeleri tek raporda alın.', ikon: 'report', etiket: 'İndirilebilir rapor' }
 ]
 

@@ -222,8 +222,28 @@ export function akis(d: Degerlendirme): Soru[] {
       // Diğer kullanımlar tek tek eklenir (kullanıcı 18 Ekim 2026): bir kullanım seçilir, onun soruları gelir, sonra "başka kullanım
       // daha var mı?" sorulur. Daha önce eklenen sınıflar listeden çıkar. Sonuç yine diğer kullanım listesinden hesaplanır.
       // Bir diğer kullanımın soruları: yapıyla ilişkisi, aynı yapıdaysa sınıfına özgü sorular.
+      // Karma yapı (kullanıcı 18 Ekim 2026): eklenen kullanım, o sınıf ana kullanım seçildiğinde gelen tür sorusunu aynen getirir
+      // (ör. konuta büro eklenince büro türleri). Yapıya ait sorular (site, yerleşim, yükseklik, oda, alan) ana yapıda bir kez sorulur.
+      const turSorusu = (s: SinifKod, p: string) => {
+        const g = 'diger' as const
+        if (s === 'konut') {
+          need({ id: `${p}konutTuru`, tip: 'secim', grup: g, sinif: 'konut', kisaAd: 'Konut türü', baslik: 'Konut yapınızı seçin', secenekler: KONUT_TURU.filter(t => t.deger !== 'site') })
+          const tur = KONUT_TURU.find(t => t.deger === c[`${p}konutTuru`])!
+          need({ id: `${p}konutAltTuru`, tip: 'secim', grup: g, sinif: 'konut', kisaAd: 'Konut yapısı', baslik: 'Yapınız aşağıdakilerden hangisi?', ust: { baslik: tur.etiket, aciklama: tur.aciklama }, ikiSutun: true, secenekler: KONUT_ALT_TURU[c[`${p}konutTuru`] as 'mustakil' | 'apartman'] })
+        }
+        if (s === 'konaklama') need({ id: `${p}konaklamaTuru`, tip: 'secim', grup: g, sinif: 'konaklama', kisaAd: 'Konaklama türü', baslik: 'Konaklama tesisinizin türü nedir?', secenekler: [...KONAKLAMA_TURU, DIGER_YAZ], digerYaz: true })
+        if (s === 'kurumsal') need({ id: `${p}kurumsalTuru`, tip: 'secim', grup: g, sinif: 'kurumsal', kisaAd: 'Kurumsal türü', baslik: 'Kurumsal yapınızın türü nedir?', aciklama: 'Sınıflandırmada kurumun adı değil, yapının fiilî kullanım amacı esas alınır.', secenekler: [...KURUMSAL_TURU, DIGER_YAZ], digerYaz: true })
+        if (s === 'buro') need({ id: `${p}buroTuru`, tip: 'secim', grup: g, sinif: 'buro', kisaAd: 'Büro türü', baslik: 'Büro kullanımınızın türü nedir?', secenekler: [...BURO_TURU, DIGER_YAZ], digerYaz: true })
+        if (s === 'ticaret') need({ id: `${p}ticaretTuru`, tip: 'secim', grup: g, sinif: 'ticaret', kisaAd: 'Ticari kullanım türü', baslik: 'Ticari kullanımınızın türü nedir?', secenekler: [...TICARET_TURU, DIGER_YAZ], digerYaz: true })
+        if (s === 'endustri') need({ id: `${p}endTuru`, tip: 'secim', grup: g, sinif: 'endustri', kisaAd: 'Tesis türü', baslik: 'Endüstriyel tesisinizin türü nedir?', secenekler: [...END_TURU, DIGER_YAZ], digerYaz: true })
+        if (s === 'toplanma') need({ id: `${p}toplanmaTuru`, tip: 'secim', grup: g, sinif: 'toplanma', kisaAd: 'Toplanma türü', baslik: 'Toplanma amaçlı kullanımınızın türü nedir?', secenekler: TOPLANMA_TURU, digerYaz: true })
+        if (s === 'depolama') need({ id: `${p}depoTuru`, tip: 'secim', grup: g, sinif: 'depolama', kisaAd: 'Depolama türü', baslik: 'Depolama bölümünde ne depolanıyor veya muhafaza ediliyor?', secenekler: [...DEPO_TURU, DIGER_YAZ], digerYaz: true })
+        if (s === 'yuksek') need({ id: `${p}yhFaaliyetler`, tip: 'gruplu', grup: g, sinif: 'yuksek', kisaAd: 'Faaliyetler', etiket: YH_EKRAN.etiket, baslik: YH_EKRAN.baslik, aciklama: YH_EKRAN.aciklama,
+          gruplar: [{ id: 'madde', baslik: YH_EKRAN.madde, secenekler: YH_MADDE }, { id: 'tesis', baslik: YH_EKRAN.tesis, secenekler: YH_TESIS }, { id: 'islem', baslik: YH_EKRAN.islem, secenekler: YH_ISLEM, coklu: true }] })
+      }
       const digerSorulari = (s: SinifKod, i: number) => {
         const p = digerOnek(i)
+        turSorusu(s, p)
         const iliskiSec = iliskiSecenekleri(e, s, c)
         if (iliskiSec.length > 1) need({ id: iliskiId(s, i), tip: 'secim', grup: 'diger', sinif: s, kisaAd: `${kisa(s)} ile ilişki`, baslik: `${SINIFLAR[s].ad}: yapıyla ilişkisi nedir?`, aciklama: 'Her farklı alan ayrı kullanım değildir.', secenekler: iliskiSec })
         if (iliskiCevabi(e, s, c, i) !== 'ayni') return
@@ -400,18 +420,19 @@ function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean, p = esas ? '' : 'd
 
 // ── Detaylı analiz başlıkları ────────────────────────────────────────────────
 // Esas kullanım + yapıda birlikte bulunan diğer kullanımlar (bağımsız veya yardımcı; ayrı yapılar hariç), alt türleriyle.
-// Alt tür: esas kullanımda sınıfın tür sorusu; diğer kullanımda yalnız sorulanlar (toplanma, depolama). Metinler data/onDegerlendirme.ts.
+// Alt tür: sınıfın tür sorusu (esas kullanımda ve diğer kullanımda kendi ön ekiyle). Metinler data/onDegerlendirme.ts.
 const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; digerde?: boolean }>> = {
-  konut: { id: 'konutTuru', secenekler: KONUT_TURU },
-  konaklama: { id: 'konaklamaTuru', secenekler: KONAKLAMA_TURU },
-  kurumsal: { id: 'kurumsalTuru', secenekler: KURUMSAL_TURU },
-  buro: { id: 'buroTuru', secenekler: BURO_TURU },
-  ticaret: { id: 'ticaretTuru', secenekler: TICARET_TURU },
-  endustri: { id: 'endTuru', secenekler: END_TURU },
+  // digerde: diğer kullanım olarak eklendiğinde de sorulur (karma yapı, kullanıcı 18 Ekim 2026: hepsi)
+  konut: { id: 'konutTuru', secenekler: KONUT_TURU, digerde: true },
+  konaklama: { id: 'konaklamaTuru', secenekler: KONAKLAMA_TURU, digerde: true },
+  kurumsal: { id: 'kurumsalTuru', secenekler: KURUMSAL_TURU, digerde: true },
+  buro: { id: 'buroTuru', secenekler: BURO_TURU, digerde: true },
+  ticaret: { id: 'ticaretTuru', secenekler: TICARET_TURU, digerde: true },
+  endustri: { id: 'endTuru', secenekler: END_TURU, digerde: true },
   toplanma: { id: 'toplanmaTuru', secenekler: TOPLANMA_TURU, digerde: true },
   depolama: { id: 'depoTuru', secenekler: DEPO_TURU, digerde: true },
   // Yüksek tehlikeli: tür, faaliyet ekranındaki ilk tesis türü (yoksa ilk madde grubu); bkz. yhTur
-  yuksek: { id: 'yhFaaliyetler', secenekler: [...YH_TESIS, ...YH_MADDE] }
+  yuksek: { id: 'yhFaaliyetler', secenekler: [...YH_TESIS, ...YH_MADDE], digerde: true }
 }
 // Gruplu cevaptan analiz başlıkları için tek tür: önce tesis / faaliyet türü, yoksa madde grubu.
 const yhTur = (v: any): string | undefined => v ? (v.tesis?.[0] ?? v.madde?.[0]) : undefined
@@ -425,7 +446,8 @@ function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { baslikl
     const tur: string | undefined = s === 'yuksek' ? yhTur(ham) : ham
     // Düzeltme 02: kullanıcının yazdığı özgün ad aynen kullanılır
     const yazi: string | undefined = (soru && c[`${k.iliski === 'esas' ? soru.id : `${k.onek ?? 'd_'}${soru.id}`}_yazi`]) || (k.iliski === 'esas' ? c.yaziAd : undefined)
-    const altTur = s === 'konut' && k.iliski === 'esas' && c.konutTuru !== 'site' ? KONUT_ALT_TURU[c.konutTuru as 'mustakil' | 'apartman']?.find(o => o.deger === c.konutAltTuru)?.etiket : undefined
+    const kon = k.iliski === 'esas' ? '' : k.onek ?? 'd_'
+    const altTur = s === 'konut' && c[`${kon}konutTuru`] !== 'site' ? KONUT_ALT_TURU[c[`${kon}konutTuru`] as 'mustakil' | 'apartman']?.find(o => o.deger === c[`${kon}konutAltTuru`])?.etiket : undefined
     const ad = yazi || altTur || (tur && (KULLANIM_KISA_AD[tur] ?? soru!.secenekler.find(o => o.deger === tur)?.etiket)) || SINIF_KISA_AD[s]
     const liste = (tur && ANALIZ_BASLIKLARI[s].tur?.[turGrubu(soru!.secenekler, tur)]) || ANALIZ_BASLIKLARI[s].varsayilan
     return { ad, liste, ayni: k.iliski === 'ayni' }
@@ -523,7 +545,7 @@ function yonlendirmeSecimi(c: Cevaplar, kullanimlar: KullanimSonucu[]): SecimSon
     if (esas.sinif === 'konut' && c.konutTuru === 'site') return c.siteKullanici === 'yonetim' ? sec('site_yonetimi', [HE.site.yonetim]) : sec('tek_secim', [HE.site.oturan])
     const paket = (k: KullanimSonucu): string => {
       const s = k.sinif!
-      if (s === 'konut') return (k.iliski === 'esas' && HE.esleme.konut?.[c.konutAltTuru]) || HE.diger.konut!
+      if (s === 'konut') return HE.esleme.konut?.[c[`${k.iliski === 'esas' ? '' : k.onek ?? 'd_'}konutAltTuru`]] || HE.diger.konut!
       const soru = TUR_SORUSU[s]
       const tur = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`${k.onek ?? 'd_'}${soru.id}`] : undefined)
       return (tur && HE.esleme[s]?.[tur]) || HE.diger[s]!

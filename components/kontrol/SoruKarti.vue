@@ -32,7 +32,7 @@ const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi
 // Bu sınıftaki kural eşleşmeleri (yalnız bu listeden)
 const kuralOnerileri = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif && (props.soru.secenekler ?? []).some(o => o.deger === e.tur)))
 // Başka sınıfa ait ise o sınıfa yönlendirilir (kullanıcı, 17 Ekim). Diğer kullanım sorularında (d_) yönlendirme yok.
-const yonlendirilir = computed(() => !props.soru.id.startsWith('d_'))
+const yonlendirilir = computed(() => !/^d\d*_/.test(props.soru.id))
 const kuralYonlendirme = computed(() => (yonlendirilir.value ? eslesmeler.value.filter(e => e.sinif !== props.soru.sinif && e.tur) : []))
 // Kurallar bulamazsa yapay zekâ; beklerken "analiz ediliyor"
 const yzOneri = ref<YzSonuc>(null)
@@ -66,7 +66,7 @@ const tanimliTurler = computed(() => (props.soru.secenekler ?? []).filter(o => o
 const elleSec = () => emit('cevap', elleTur.value, { [`${props.soru.id}_yazi`]: yaziTemiz.value, [`${props.soru.id}_eslesme`]: 'elle' })
 const TUR_ID: Partial<Record<string, string>> = { konaklama: 'konaklamaTuru', kurumsal: 'kurumsalTuru', buro: 'buroTuru', ticaret: 'ticaretTuru', endustri: 'endTuru', toplanma: 'toplanmaTuru', depolama: 'depoTuru', yuksek: 'yhFaaliyet' }
 // Tür sorusunda seçeneklerin solunda ikon (Düzeltme 02 örnek ekranı); diğer kullanım (d_) tür sorularında da
-const turIkon = computed(() => (props.soru.sinif && props.soru.id.replace(/^d_/, '') === TUR_ID[props.soru.sinif] ? TUR_IKON[props.soru.sinif] : undefined))
+const turIkon = computed(() => (props.soru.sinif && props.soru.id.replace(/^d\d*_/, '') === TUR_ID[props.soru.sinif] ? TUR_IKON[props.soru.sinif] : undefined))
 const oneriSec = (e: Eslesme) => {
   const ad = yaziTemiz.value
   if (e.sinif === props.soru.sinif) return emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: 'tur' })
@@ -83,14 +83,19 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
 // Diğer kullanımın soruları (kullanıcı 18 Ekim 2026): başka bir bina türüne geçildiği ince kenarlıktan fark edilmiyordu; kartın
 // üstünde o sınıfın renginde bant (sınıf fotoğrafı + adı) ve sınıf renginde çerçeve.
 const FOTO_KOD: Record<string, string> = { konut: 'residential', konaklama: 'lodging', kurumsal: 'institutional', buro: 'office', ticaret: 'commercial', endustri: 'industrial', toplanma: 'assembly', depolama: 'storage', yuksek: 'high_hazard' }
-const digerKullanim = computed(() => (props.soru.grup === 'diger' && props.soru.sinif ? { ad: SINIFLAR[props.soru.sinif].ad, foto: `/img/siniflar/${FOTO_KOD[props.soru.sinif]}-400.webp` } : null))
+// Kaçıncı diğer kullanım: soru kimliğindeki sıra (d2_…, iliski2_…); birincide yalnız "Diğer kullanım".
+const digerKullanim = computed(() => {
+  if (props.soru.grup !== 'diger' || !props.soru.sinif) return null
+  const n = Number(props.soru.id.match(/^(?:d|iliski)(\d+)_/)?.[1] ?? 1)
+  return { ad: SINIFLAR[props.soru.sinif].ad, sira: n > 1 ? `${n}. diğer kullanım` : 'Diğer kullanım', foto: `/img/siniflar/${FOTO_KOD[props.soru.sinif]}-400.webp` }
+})
 </script>
 
 <template>
   <section class="soru card" :class="[soru.tip, { 'diger-kullanim': digerKullanim }]" :style="{ '--vurgu': renk }">
     <div v-if="digerKullanim" class="kullanim-bant">
       <img :src="digerKullanim.foto" alt="" width="52" height="52" />
-      <span><small>Diğer kullanım</small><strong>{{ digerKullanim.ad }}</strong></span>
+      <span><small>{{ digerKullanim.sira }}</small><strong>{{ digerKullanim.ad }}</strong></span>
     </div>
     <div v-if="soru.ust" class="ust-kutu">
       <strong>{{ soru.ust.baslik }}</strong>

@@ -29,7 +29,7 @@ export const useOnDegerlendirme = () => {
   const cevapla = (id: string, deger: any, ek?: Cevaplar) => {
     const c = { ...d.value.c, ...(ek || {}), [id]: deger }
     // Başka kullanım yoksa tek tek eklenmiş diğer kullanımlar silinir.
-    if (id === 'digerVar' && deger === 'hayir') for (const k of Object.keys(c)) if (/^(diger_|digerDaha_)\d+$/.test(k)) delete c[k]
+    if (id === 'digerVar' && deger === 'hayir') for (const k of Object.keys(c)) if (/^(diger_|digerDaha_)\d+$|^d\d+_|^iliski\d+_/.test(k)) delete c[k]
     d.value = { ...d.value, c }
     kaydet()
   }

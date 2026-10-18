@@ -43,7 +43,9 @@ const devamEt = () => {
           @click="secili = k.kod"
         >
           <!-- Sınıf fotoğrafı (kullanıcı 18 Ekim 2026) -->
-          <img class="opt-foto" :src="`/img/siniflar/${k.kod}.webp`" :alt="k.ad" width="800" height="600" loading="lazy">
+          <!-- Kutu oranında (366×190) kırpılmış 3 boyut; tarayıcı ekran genişliği ve yoğunluğuna göre seçer -->
+          <img class="opt-foto" :src="`/img/siniflar/${k.kod}-800.webp`" :srcset="`/img/siniflar/${k.kod}-400.webp 400w, /img/siniflar/${k.kod}-800.webp 800w, /img/siniflar/${k.kod}-1100.webp 1100w`"
+            sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1000px) calc(50vw - 40px), 366px" :alt="k.ad" width="800" height="415" loading="lazy">
           <span class="opt-ic">
           <span class="num" :class="{ 'gold-num': secili === k.kod }">{{ i + 1 }}</span>
           <span class="opt-body">

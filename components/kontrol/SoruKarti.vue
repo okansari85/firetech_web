@@ -80,10 +80,18 @@ const sayiDegeri = computed(() => { const n = parseFloat(sayi.value.replace(/\./
 const toggle = (v: string) => { coklu.value = coklu.value.includes(v) ? coklu.value.filter(x => x !== v) : [...coklu.value, v] }
 const yardim = computed(() => (props.soru.yardim ? YARDIM[props.soru.yardim] : null))
 const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk : 'var(--gold)'))
+// Diğer kullanımın soruları (kullanıcı 18 Ekim 2026): başka bir bina türüne geçildiği ince kenarlıktan fark edilmiyordu; kartın
+// üstünde o sınıfın renginde bant (sınıf fotoğrafı + adı) ve sınıf renginde çerçeve.
+const FOTO_KOD: Record<string, string> = { konut: 'residential', konaklama: 'lodging', kurumsal: 'institutional', buro: 'office', ticaret: 'commercial', endustri: 'industrial', toplanma: 'assembly', depolama: 'storage', yuksek: 'high_hazard' }
+const digerKullanim = computed(() => (props.soru.grup === 'diger' && props.soru.sinif ? { ad: SINIFLAR[props.soru.sinif].ad, foto: `/img/siniflar/${FOTO_KOD[props.soru.sinif]}-400.webp` } : null))
 </script>
 
 <template>
-  <section class="soru card" :class="soru.tip" :style="{ '--vurgu': renk }">
+  <section class="soru card" :class="[soru.tip, { 'diger-kullanim': digerKullanim }]" :style="{ '--vurgu': renk }">
+    <div v-if="digerKullanim" class="kullanim-bant">
+      <img :src="digerKullanim.foto" alt="" width="52" height="52" />
+      <span><small>Diğer kullanım</small><strong>{{ digerKullanim.ad }}</strong></span>
+    </div>
     <div v-if="soru.ust" class="ust-kutu">
       <strong>{{ soru.ust.baslik }}</strong>
       <p v-if="soru.ust.aciklama">{{ soru.ust.aciklama }}</p>
@@ -212,6 +220,14 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
 
 <style scoped>
 .soru { border-top: 4px solid var(--vurgu); padding: 28px; }
+.soru.diger-kullanim { border: 2px solid var(--vurgu); padding-top: 0; overflow: hidden; }
+.kullanim-bant { display: flex; align-items: center; gap: 14px; margin: 0 -28px 24px; padding: 14px 28px; background: var(--vurgu); color: #fff; animation: bant-gir .45s ease; }
+.kullanim-bant img { width: 52px; height: 52px; flex: none; object-fit: cover; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .85); }
+.kullanim-bant span { display: flex; flex-direction: column; gap: 2px; }
+.kullanim-bant small { font-size: 12.5px; font-weight: 700; letter-spacing: .06em; opacity: .85; }
+.kullanim-bant strong { font-family: var(--font-head); font-size: 22px; line-height: 1.15; }
+@keyframes bant-gir { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+@media (max-width: 640px) { .kullanim-bant { margin: 0 -20px 20px; padding: 12px 20px; } .kullanim-bant strong { font-size: 19px; } }
 .ust { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
 h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .yardim-btn { flex: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); border-radius: 999px; background: #fff; padding: 7px 14px; font-family: var(--font-head); font-weight: 700; font-size: 14px; color: var(--gold); cursor: pointer; }

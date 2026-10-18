@@ -19,7 +19,7 @@ const belirsizler = computed(() => props.sonuc.kullanimlar.filter(k => ['belirle
 const DUZENLE_ETIKETI: [RegExp, string][] = [
   [/^alan/, 'Yapı İnşaat Alanını Düzenle'], [/^oda$/, 'Oda Sayısını Düzenle'], [/^yukseklik$/, 'Yapı Yüksekliğini Düzenle'],
   [/Tehlike$/, 'Tehlike Sınıfını Düzenle'], [/depoMadde$/, 'Tehlikeli Madde Bilgisini Düzenle'], [/toplanmaTuru$/, 'Toplanma Türünü Düzenle'],
-  [/toplanma(Alani|Oturma|Ayakta)$/, 'Toplanma Alanını Düzenle'], [/yh(Iliski|Mod)$/, 'Faaliyet Bilgisini Düzenle'], [/^digerler$/, 'Diğer Kullanımları Düzenle']
+  [/toplanma(Alani|Oturma|Ayakta)$/, 'Toplanma Alanını Düzenle'], [/yh(Iliski|Mod)$/, 'Faaliyet Bilgisini Düzenle'], [/^diger_\d+$/, 'Diğer Kullanımları Düzenle']
 ]
 const duzenleDugmeleri = computed(() => {
   const ids = [...new Set(belirsizler.value.map(k => k.soru).filter((x): x is string => !!x))]
@@ -70,7 +70,11 @@ const soruIkonu = (q: { metin: string; konu: string }) => KONU_IKON[q.konu] ?? b
       <!-- Yapıya özel yönlendirme soruları (soru havuzu; cevap beklenmez). Seçilemezse eski analiz başlıkları. -->
       <ul v-if="sonuc.sorular?.length" class="basliklar sorular"><li v-for="q in sonuc.sorular" :key="q.id"><span class="b-ikon"><AppIcon :name="soruIkonu(q)" /></span>{{ q.metin }}</li></ul>
       <ul v-else class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
-      <p class="deger">{{ METIN.degerCumlesi }}</p>
+      <!-- Analize çağrı metni: aynı yerde, vurgulu kutuda (kullanıcı 18 Ekim 2026) -->
+      <div class="deger-kutu">
+        <p class="deger-soru">{{ METIN.degerSoru }}</p>
+        <p class="deger">{{ METIN.degerMetni.replace('{A}', sonuc.kullanimAdlari) }}</p>
+      </div>
       <div class="dugmeler">
         <button type="button" class="btn analiz-btn" @click="analiziBaslat('bina')">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></button>
         <button type="button" class="btn ghost" @click="emit('duzenle')">Cevapları Düzenle</button>
@@ -155,7 +159,10 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
 }
 .b-ikon svg { width: 24px; height: 24px; stroke-width: 2; }
-.deger { font-weight: 500; }
+.deger-kutu { margin: 20px 0 4px; padding: 18px 22px; border-left: 4px solid var(--gold); border-radius: 0 12px 12px 0; background: #fbf6ea; }
+.deger-soru { margin: 0 0 8px; font-family: var(--font-head); font-size: 23px; font-weight: 700; color: var(--navy); line-height: 1.25; }
+.deger { margin: 0; font-size: 16.5px; font-weight: 500; line-height: 1.6; color: #2b2b2b; }
+@media (max-width: 640px) { .deger-kutu { padding: 14px 16px; } .deger-soru { font-size: 20px; } .deger { font-size: 15.5px; } }
 .dugmeler { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 18px; container-type: inline-size; }
 /* Ana eylem: "4 YIL" kutusu gibi lacivert zemin, altın yazı; satırın tamamı */
 .analiz-btn {

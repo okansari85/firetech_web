@@ -215,12 +215,13 @@ export function akis(d: Degerlendirme): Soru[] {
     need({ id: 'digerVar', tip: 'secim', grup: 'diger', kisaAd: 'Başka kullanım', baslik: DIGER_VAR_METNI[e].soru,
       secenekler: [{ deger: 'hayir', etiket: DIGER_VAR_METNI[e].hayir }, { deger: 'evet', etiket: 'Evet, başka kullanım da var' }] })
     if (c.digerVar === 'evet') {
-      need({ id: 'digerler', tip: 'coklu', grup: 'diger', kisaAd: 'Diğer kullanımlar', baslik: 'Yapıdaki diğer kullanımları seçin', aciklama: 'Bir veya birden fazla kullanım seçebilirsiniz. Kart örnekleri yönlendirme içindir; kesin sınıf ilgili kullanımın kendi akışında belirlenir.', secenekler: DIGER_KULLANIM_KARTLARI.filter(k => k.sinif !== e) })
-      const digerler: SinifKod[] = (c.digerler as string[]).filter(s => s !== 'bilinmiyor') as SinifKod[]
-      for (const s of digerler) {
+      // Diğer kullanımlar tek tek eklenir (kullanıcı 18 Ekim 2026): bir kullanım seçilir, onun soruları gelir, sonra "başka kullanım
+      // daha var mı?" sorulur. Daha önce eklenen sınıflar listeden çıkar. Sonuç yine diğer kullanım listesinden hesaplanır.
+      // Bir diğer kullanımın soruları: yapıyla ilişkisi, aynı yapıdaysa sınıfına özgü sorular.
+      const digerSorulari = (s: SinifKod) => {
         const iliskiSec = iliskiSecenekleri(e, s, c)
         if (iliskiSec.length > 1) need({ id: `iliski_${s}`, tip: 'secim', grup: 'diger', sinif: s, kisaAd: `${kisa(s)} ile ilişki`, baslik: `${SINIFLAR[s].ad}: yapıyla ilişkisi nedir?`, aciklama: 'Her farklı alan ayrı kullanım değildir.', secenekler: iliskiSec })
-        if (iliskiCevabi(e, s, c) !== 'ayni') continue
+        if (iliskiCevabi(e, s, c) !== 'ayni') return
         if (s === 'toplanma') toplanmaSorulari('d_', 'diger')
         if (s === 'depolama') {
           need({ id: 'd_depoAlani', tip: 'sayi', grup: 'diger', sinif: 'depolama', birim: 'm²', bilinmiyorDugmesi: true, kisaAd: 'Depo alanı', baslik: 'Depolama bölümünün alanı kaç m²?', aciklama: 'BYKHY Madde 16’ya göre bir binanın içindeki 50 m²’den küçük depolama bölümleri esas binanın parçası sayılır.' })
@@ -228,6 +229,17 @@ export function akis(d: Degerlendirme): Soru[] {
         }
         if (s === 'endustri') endustriSorulari('d_', 'diger')
         if (s === 'yuksek') need({ id: 'd_yhMod', tip: 'secim', grup: 'diger', sinif: 'yuksek', kisaAd: 'Tehlikeli madde faaliyeti', baslik: 'Tehlikeli maddeler bu bölümde nasıl bulunuyor?', secenekler: YH_MOD })
+      }
+      const digerler: SinifKod[] = []
+      for (let i = 1; ; i++) {
+        const secilen = digerListesi(c, i - 1)
+        const kartlar = DIGER_KULLANIM_KARTLARI.filter(k => k.sinif !== e && !secilen.includes(k.deger))
+        need({ id: `diger_${i}`, tip: 'secim', grup: 'diger', kisaAd: i === 1 ? 'Diğer kullanım' : `${i}. diğer kullanım`, baslik: i === 1 ? 'Yapıdaki diğer kullanımı seçin' : 'Eklenecek diğer kullanımı seçin', aciklama: 'Kart örnekleri yönlendirme içindir; kesin sınıf ilgili kullanımın kendi akışında belirlenir.', secenekler: kartlar })
+        const s = c[`diger_${i}`] as string
+        if (s !== 'bilinmiyor') { digerler.push(s as SinifKod); digerSorulari(s as SinifKod) }
+        if (kartlar.length <= 1) break
+        need({ id: `digerDaha_${i}`, tip: 'secim', grup: 'diger', kisaAd: 'Başka kullanım', baslik: 'Yapıda başka bir kullanım daha var mı?', secenekler: [{ deger: 'hayir', etiket: 'Hayır, başka kullanım yok' }, { deger: 'evet', etiket: 'Evet, bir kullanım daha var' }] })
+        if (c[`digerDaha_${i}`] !== 'evet') break
       }
       // Aynı yapıdaki bağımsız kullanımlar için henüz sorulmamış yapı bilgileri
       const ayni = digerler.filter(s => iliskiCevabi(e, s, c) === 'ayni' && (s !== 'toplanma' || toplanmaSayilir('d_')))
@@ -274,6 +286,8 @@ export type Sonuc = {
   analizAdi: string
   // Yapıya özel yönlendirme soruları (soru havuzu v6 + v7 seçim kuralı); seçilemezse null ve başlıklar gösterilir
   sorular: { id: string; metin: string; konu: string }[] | null
+  // Sonuç metnindeki kullanım adları, ör. "Rezidans ve büro" (boşsa yedek ad)
+  kullanimAdlari: string
 }
 
 const bandaGore = (deger: any, tablo: Record<string, number | null>, etiketler: Secenek[], adi: string): Pick<KullanimSonucu, 'periyot' | 'durum' | 'belirleyici'> => {
@@ -396,9 +410,9 @@ const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; 
 }
 // Gruplu cevaptan analiz başlıkları için tek tür: önce tesis / faaliyet türü, yoksa madde grubu.
 const yhTur = (v: any): string | undefined => v ? (v.tesis?.[0] ?? v.madde?.[0]) : undefined
-function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { basliklar: string[]; ad: string } {
+function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { basliklar: string[]; ad: string; adlar: string } {
   const birlikte = kullanimlar.filter(k => k.sinif && (k.iliski === 'esas' || k.iliski === 'ayni' || k.iliski === 'yardimci'))
-  if (!birlikte.length) return { basliklar: METIN.basliklar, ad: METIN.analizAdiYedek }
+  if (!birlikte.length) return { basliklar: METIN.basliklar, ad: METIN.analizAdiYedek, adlar: METIN.degerAdYedek }
   const parcalar = birlikte.map((k) => {
     const s = k.sinif!
     const soru = TUR_SORUSU[s]
@@ -432,7 +446,21 @@ function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { baslikl
   // Başlıkta her kelime büyük harfle başlar: "ticari alan" → "Ticari Alan"
   const buyukHarf = (t: string) => t.split(' ').map(w => w.charAt(0).toLocaleUpperCase('tr') + w.slice(1)).join(' ')
   const ad = `${[...new Set(parcalar.map(p => buyukHarf(p.ad)))].join(' + ')} ${METIN.analizAdiSonu}`
-  return { basliklar: [...new Set([...sirali, ...ortak])], ad }
+  // "Rezidans ve büro" / "Apartman, restoran / kafe ve büro": ilki büyük harfle, diğerleri küçük
+  const tekil = [...new Set(parcalar.map(p => p.ad))].map((a, i) => (i ? kucuk(a) : a))
+  const adlar = tekil.length > 1 ? `${tekil.slice(0, -1).join(', ')} ve ${tekil[tekil.length - 1]}` : tekil[0] ?? METIN.degerAdYedek
+  return { basliklar: [...new Set([...sirali, ...ortak])], ad, adlar }
+}
+
+// Tek tek eklenen diğer kullanımlar (diger_1, diger_2 …; "başka kullanım daha var mı?" evet oldukça). en: en fazla kaç tane okunur.
+export function digerListesi(c: Cevaplar, en = Infinity): string[] {
+  const l: string[] = []
+  if (c.digerVar !== 'evet') return l
+  for (let i = 1; i <= en && c[`diger_${i}`]; i++) {
+    l.push(c[`diger_${i}`])
+    if (c[`digerDaha_${i}`] !== 'evet') break
+  }
+  return l
 }
 
 export function hesapla(d: Degerlendirme): Sonuc {
@@ -441,9 +469,9 @@ export function hesapla(d: Degerlendirme): Sonuc {
   if (d.esas) {
     kullanimlar.push({ anahtar: 'esas', sinif: d.esas, ad: SINIFLAR[d.esas].ad, madde: SINIFLAR[d.esas].madde, iliski: 'esas', ...sinifSonucu(d.esas, c, true) })
   }
-  if (c.digerVar === 'evet' && Array.isArray(c.digerler) && !KARMA_YOK.includes(d.esas!)) {
-    for (const k of c.digerler as string[]) {
-      if (k === 'bilinmiyor') { kullanimlar.push({ anahtar: k, sinif: null, ad: 'Kullanım türü bilinmeyen alan', madde: null, iliski: null, periyot: null, durum: 'belirlenemedi', belirleyici: 'Kullanım türü belirlenemedi', soru: 'digerler' }); continue }
+  if (c.digerVar === 'evet' && !KARMA_YOK.includes(d.esas!)) {
+    for (const [i, k] of digerListesi(c).entries()) {
+      if (k === 'bilinmiyor') { kullanimlar.push({ anahtar: k, sinif: null, ad: 'Kullanım türü bilinmeyen alan', madde: null, iliski: null, periyot: null, durum: 'belirlenemedi', belirleyici: 'Kullanım türü belirlenemedi', soru: `diger_${i + 1}` }); continue }
       const s = k as SinifKod
       const iliski = iliskiCevabi(d.esas!, s, c) as KullanimSonucu['iliski'] | undefined
       const temel = { anahtar: s, sinif: s, ad: SINIFLAR[s].ad, madde: SINIFLAR[s].madde, iliski: iliski ?? null }
@@ -466,7 +494,7 @@ export function hesapla(d: Degerlendirme): Sonuc {
   if (kullanimlar.some(k => k.durum === 'ayri_yapi')) notlar.push(METIN.ayriYapi)
   if (genel === 'tanimsiz') notlar.push(METIN.tanimsizNot)
   const secim = yonlendirmeSecimi(c, kullanimlar)
-  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, ...(({ basliklar, ad }) => ({ basliklar, analizAdi: ad }))(analizBasliklari(c, kullanimlar)),
+  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, ...(({ basliklar, ad, adlar }) => ({ basliklar, analizAdi: ad, kullanimAdlari: adlar }))(analizBasliklari(c, kullanimlar)),
     sorular: secim ? secim.sorular.map(q => ({ id: q.id, metin: q.metin, konu: q.topicGroup })) : null }
 }
 

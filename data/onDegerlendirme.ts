@@ -554,7 +554,10 @@ export const METIN = {
   analizAdiYedek: 'Yapınızın Yangın Güvenliği',
   // Kullanım bilgisi yokken (yedek) gösterilen genel başlıklar; normalde ANALIZ_BASLIKLARI kullanılır.
   basliklar: ['Kaçış ve Tahliye', 'Yangın Kapıları ve Bölmeleri', 'Acil Durum Aydınlatma ve Yönlendirme', 'Algılama ve Alarm Sistemleri', 'Söndürme Sistemleri'],
-  degerCumlesi: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini görün, eksikleri önceden belirleyin ve periyodik kontrole hazırlanın.',
+  // Soruların altındaki metin (kullanıcı 18 Ekim 2026); {A} = kullanım adları, ör. "Rezidans ve büro"
+  degerSoru: 'Yapınızın yangın güvenliği açısından ne kadar hazır olduğunu biliyor musunuz?',
+  degerMetni: '{A} alanlarınıza özel ayrıntılı analizle mevzuat gerekliliklerini, eksik veya doğrulanması gereken konuları ve öncelikli iyileştirme adımlarını görün. Denetimlere ve periyodik kontrole daha hazırlıklı olun.',
+  degerAdYedek: 'Yapınızın',
   cta: 'Detaylı Yangın Güvenliği Analizini Başlat',
   uyari: 'Bu sonuç resmî bir yangın güvenlik raporu veya periyodik kontrol raporu değildir. Kullanıcı tarafından verilen bilgiler doğrultusunda oluşturulan ön değerlendirme sonucudur.'
 }

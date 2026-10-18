@@ -49,6 +49,13 @@ export const useOnDegerlendirme = () => {
   }
   const eylem = (e: Eylem) => {
     if (e.tip === 'esas' && e.sinif) { d.value = { esas: e.sinif, c: { ...(e.ek || {}) } }; kaydet() }
+    // Diğer kullanım başka sınıfa çevrilir: o kullanımın seçimi ve sonrası silinir, yeni sınıf (ve bulunduysa türü) yazılır.
+    if (e.tip === 'diger' && e.sinif && e.sira) {
+      const id = `diger_${e.sira}`
+      degistir(id)
+      d.value = { ...d.value, c: { ...d.value.c, [id]: e.sinif, ...(e.ek || {}) } }
+      kaydet()
+    }
   }
   const sifirla = () => { d.value = { esas: null, c: {} }; kaydet() }
 

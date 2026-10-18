@@ -53,7 +53,7 @@ const yeni = () => { od.sifirla(); navigateTo('/ucretsiz-kontrol/kullanim-sinifi
               <KontrolSonucPaneli :sonuc="sonuc" :c="d.c" @duzenle="geri" @duzenle-soru="soruyaDon" @yeni="yeni" />
             </template>
             <template v-else-if="mevcut">
-              <KontrolSoruKarti :key="mevcut.id" :soru="mevcut" :deger="d.c[mevcut.id]" @cevap="cevap" @eylem="eylem" />
+              <KontrolSoruKarti :key="mevcut.id" :soru="mevcut" :deger="d.c[mevcut.id]" :esas="d.esas" @cevap="cevap" @eylem="eylem" />
               <div class="gezinti"><button type="button" class="btn ghost" @click="geri">← Geri</button></div>
             </template>
           </ClientOnly>

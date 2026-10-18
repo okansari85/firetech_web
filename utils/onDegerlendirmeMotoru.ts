@@ -14,7 +14,8 @@ export type Cevaplar = Record<string, any>
 export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolean }
 
 // sayfa: ücretli ürüne geçiş (üyelik → ödeme → ürün; composables/useUyelik.ts)
-export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa'; sinif?: SinifKod; ek?: Cevaplar; urun?: 'bina' | 'site' }
+// tip 'diger': eklenen diğer kullanım (sira) başka sınıfa çevrilir (yazılan tür o sınıfa aitse; kullanıcı 18 Ekim 2026)
+export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa' | 'diger'; sinif?: SinifKod; ek?: Cevaplar; urun?: 'bina' | 'site'; sira?: number }
 export type Soru = {
   id: string
   tip: 'secim' | 'coklu' | 'gruplu' | 'sayi' | 'metin' | 'bilgi'

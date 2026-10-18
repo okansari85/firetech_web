@@ -1,12 +1,13 @@
 <script setup lang="ts">
 // Tek soru: büyük seçenek kartları (seçince ilerler), çoklu seçim, sayı veya metin girişi, bilgi / yönlendirme.
 import type { Soru, Eylem } from '~/utils/onDegerlendirmeMotoru'
-import { YARDIM, SINIFLAR, DIGER_YAZ_METIN } from '~/data/onDegerlendirme'
+import { YARDIM, SINIFLAR, DIGER_YAZ_METIN, type SinifKod } from '~/data/onDegerlendirme'
 import { eslestir, eslesmeEtiketi, ALT_TURLER, type Eslesme } from '~/utils/eslestir'
 import { yzEslestir, type YzSonuc } from '~/utils/yzEslestir'
 import { TUR_IKON } from '~/data/turIkonlari'
 
-const props = defineProps<{ soru: Soru; deger?: any }>()
+// esas: ana kullanım (diğer kullanımda yazılan tür ana kullanımın sınıfına aitse yönlendirilmez; o sınıf diğer kullanım listesinde yok)
+const props = defineProps<{ soru: Soru; deger?: any; esas?: SinifKod | null }>()
 const emit = defineEmits<{ cevap: [deger: any, ek?: Record<string, any>]; eylem: [e: Eylem] }>()
 
 const coklu = ref<string[]>(Array.isArray(props.deger) ? [...props.deger] : [])
@@ -31,9 +32,11 @@ const eslesmeler = computed(() => (yazi.value.trim().length >= 3 ? eslestir(yazi
 // Öneriler yalnız bu sorunun listesinden (kullanıcı kararı, 17 Ekim): başka sınıf önerilmez; eşleşme yoksa listeden seçilir
 // Bu sınıftaki kural eşleşmeleri (yalnız bu listeden)
 const kuralOnerileri = computed(() => eslesmeler.value.filter(e => e.sinif === props.soru.sinif && (props.soru.secenekler ?? []).some(o => o.deger === e.tur)))
-// Başka sınıfa ait ise o sınıfa yönlendirilir (kullanıcı, 17 Ekim). Diğer kullanım sorularında (d_) yönlendirme yok.
-const yonlendirilir = computed(() => !/^d\d*_/.test(props.soru.id))
-const kuralYonlendirme = computed(() => (yonlendirilir.value ? eslesmeler.value.filter(e => e.sinif !== props.soru.sinif && e.tur) : []))
+// Başka sınıfa ait ise o sınıfa yönlendirilir (kullanıcı, 17 Ekim). Diğer kullanım sorularında (d_, d2_ …) da (kullanıcı 18 Ekim 2026:
+// ör. büro türüne "a101" → market, yanlış sınıf): eklenen kullanım o sınıfa çevrilir; ana kullanımın sınıfına çevrilmez.
+const digerSira = computed(() => { const m = props.soru.id.match(/^d(\d*)_/); return m ? Number(m[1] || 1) : null })
+const yonlenebilir = (s: SinifKod) => s !== props.soru.sinif && !(digerSira.value && s === props.esas)
+const kuralYonlendirme = computed(() => eslesmeler.value.filter(e => yonlenebilir(e.sinif) && e.tur))
 // Kurallar bulamazsa yapay zekâ; beklerken "analiz ediliyor"
 const yzOneri = ref<YzSonuc>(null)
 const yzDurum = ref<'bos' | 'bekliyor' | 'bitti'>('bos')
@@ -50,11 +53,13 @@ watch(() => [yazi.value, kuralOnerileri.value.length + kuralYonlendirme.value.le
     const iptal = (yzIptal = new AbortController())
     const r = await yzEslestir(metin, props.soru.sinif!, (props.soru.secenekler ?? []).filter(o => o.deger !== 'kendim'), iptal.signal)
     if (iptal.signal.aborted || yazi.value.trim() !== metin) return
-    yzOneri.value = r && (r.sinif === props.soru.sinif ? !!r.tur : yonlendirilir.value) ? r : null
+    yzOneri.value = r && (r.sinif === props.soru.sinif ? !!r.tur : yonlenebilir(r.sinif)) ? r : null
     yzDurum.value = 'bitti'
   }, YZ_BEKLEME)
 })
 onBeforeUnmount(() => { clearTimeout(yzZaman); yzIptal?.abort() })
+// Öneri bu sorunun sınıfında değilse kullanıcı yanlış sınıf seçmiştir (kullanıcı 18 Ekim 2026)
+const yanlisSinif = computed(() => !!oneriler.value.length && oneriler.value.every(e => e.sinif !== props.soru.sinif))
 const oneriler = computed<Eslesme[]>(() =>
   kuralOnerileri.value.length ? kuralOnerileri.value
     : kuralYonlendirme.value.length ? kuralYonlendirme.value
@@ -70,6 +75,13 @@ const turIkon = computed(() => (props.soru.sinif && props.soru.id.replace(/^d\d*
 const oneriSec = (e: Eslesme) => {
   const ad = yaziTemiz.value
   if (e.sinif === props.soru.sinif) return emit('cevap', e.tur, { [`${props.soru.id}_yazi`]: ad, [`${props.soru.id}_eslesme`]: 'tur' })
+  // Diğer kullanım: bu kullanım o sınıfa çevrilir, tür (bulunduysa) aynı sıranın ön ekiyle seçili gelir
+  if (digerSira.value) {
+    const p = props.soru.id.match(/^d\d*_/)![0]
+    const tid = TUR_ID[e.sinif] && e.sinif !== 'yuksek' ? `${p}${TUR_ID[e.sinif]}` : null
+    const ek = tid ? (e.tur ? { [tid]: e.tur, [`${tid}_yazi`]: ad, [`${tid}_eslesme`]: 'tur' } : { [`${tid}_yazi`]: ad }) : {}
+    return emit('eylem', { etiket: '', tip: 'diger', sinif: e.sinif, sira: digerSira.value, ek })
+  }
   // Başka sınıf: o sınıfla devam; kategori bulunduysa seçili gelir, bulunamadıysa o sınıfın listesi sorulur (yazılan ad korunur)
   const id = TUR_ID[e.sinif]
   const ek = id ? (e.tur ? { [id]: e.tur, [`${id}_yazi`]: ad, [`${id}_eslesme`]: 'tur' } : { [`${id}_yazi`]: ad }) : { yaziAd: ad }
@@ -141,7 +153,8 @@ const digerKullanim = computed(() => {
       </div>
       <template v-if="yaziTemiz.length >= 3">
         <div v-if="oneriler.length" class="oneri">
-          <div class="oneri-ust"><AppIcon name="isilti" class="isilti" /><div><strong>{{ DIGER_YAZ_METIN.oneriBaslik }}</strong><p>{{ DIGER_YAZ_METIN.oneriAciklama }}</p></div></div>
+          <div v-if="yanlisSinif" class="oneri-ust uyari"><AppIcon name="isilti" class="isilti" /><div><strong>Yanlış sınıf seçtiniz</strong><p>“{{ yaziTemiz }}” {{ soru.sinif ? SINIFLAR[soru.sinif].ad : 'bu sınıf' }} değil; aşağıdaki sınıfa ait. Bu sınıfla devam edin.</p></div></div>
+          <div v-else class="oneri-ust"><AppIcon name="isilti" class="isilti" /><div><strong>{{ DIGER_YAZ_METIN.oneriBaslik }}</strong><p>{{ DIGER_YAZ_METIN.oneriAciklama }}</p></div></div>
           <button v-for="e in oneriler" :key="`${e.sinif}-${e.tur}`" type="button" class="oneri-kart" @click="oneriSec(e)">
             <span><small>{{ DIGER_YAZ_METIN.onerilen }}</small><strong>{{ eslesmeEtiketi(e) }}</strong></span>
             <span class="devam">Devam Et <AppIcon name="arrow" /></span>
@@ -264,6 +277,7 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .temizle svg { width: 14px; height: 14px; }
 .oneri { padding: 14px; border-radius: 10px; background: #f6f4ef; display: flex; flex-direction: column; gap: 10px; }
 .oneri-ust { display: flex; gap: 12px; align-items: flex-start; }
+.oneri-ust.uyari strong { color: #b42318; }
 .isilti { width: 26px; height: 26px; color: var(--gold); flex: none; }
 .oneri-kart { display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left; padding: 12px 14px; border: 1px solid #ecd9a8; border-radius: 10px; background: #fff7e3; cursor: pointer; font: inherit; }
 .oneri-kart:hover { border-color: var(--gold); }

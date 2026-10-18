@@ -26,6 +26,12 @@ const duzenleDugmeleri = computed(() => {
   return ids.map(id => ({ id, etiket: DUZENLE_ETIKETI.find(([r]) => r.test(id))?.[1] ?? 'Bilgiyi Düzenle' }))
 })
 const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.c.blokAdi}` : ''))
+// Soru ikonu: soru havuzundaki konu grubuna göre; pakete özgü konularda metne göre (utils/baslikIkonu.ts)
+const KONU_IKON: Record<string, string> = {
+  KONTROLE_HAZIRLIK: 'report', KACIS_TAHLIYE: 'kacis', ALGILAMA_UYARI: 'alarm', SONDURME: 'sondurme', ALGILAMA_SONDURME_ORTAK: 'alarm',
+  EKIP_ORGANIZASYON: 'people', PLAN_BELGE: 'book', ANALIZE_GECIS: 'search', DUMAN_YANGIN_AYRIMI: 'duman'
+}
+const soruIkonu = (q: { metin: string; konu: string }) => KONU_IKON[q.konu] ?? baslikIkonu(q.metin)
 </script>
 
 <template>
@@ -61,7 +67,9 @@ const blok = computed(() => (props.c.blokAdi ? `Değerlendirilen yapı: ${props.
     <div class="card cta">
       <p class="analiz-etiket">{{ METIN.analizEtiket }}</p>
       <h3 class="analiz-adi">{{ sonuc.analizAdi }}</h3>
-      <ul class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
+      <!-- Yapıya özel yönlendirme soruları (soru havuzu; cevap beklenmez). Seçilemezse eski analiz başlıkları. -->
+      <ul v-if="sonuc.sorular?.length" class="basliklar sorular"><li v-for="q in sonuc.sorular" :key="q.id"><span class="b-ikon"><AppIcon :name="soruIkonu(q)" /></span>{{ q.metin }}</li></ul>
+      <ul v-else class="basliklar"><li v-for="b in sonuc.basliklar" :key="b"><span class="b-ikon"><AppIcon :name="baslikIkonu(b)" /></span>{{ b }}</li></ul>
       <p class="deger">{{ METIN.degerCumlesi }}</p>
       <div class="dugmeler">
         <button type="button" class="btn analiz-btn" @click="analiziBaslat('bina')">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></button>
@@ -138,6 +146,8 @@ td:first-child { font-family: var(--font-head); font-weight: 700; color: var(--n
   transition: border-color .15s, box-shadow .15s;
 }
 .basliklar li:hover { border-color: var(--gold); box-shadow: 0 4px 14px -8px rgba(156, 112, 32, .45); }
+/* Sorular başlıklardan uzun: metin gövde yazısıyla, biraz küçük */
+.basliklar.sorular li { align-items: flex-start; font-family: inherit; font-size: 14.5px; font-weight: 600; line-height: 1.45; }
 .b-ikon {
   display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 10px;
   /* Lacivert zeminde daha belirgin olsun diye markanın altınından açık ton */

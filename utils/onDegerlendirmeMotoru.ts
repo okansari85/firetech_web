@@ -3,10 +3,11 @@
 // hesapla(): kullanımların ve yapının periyodunu hesaplar (cevaplar eksikken de anlık çalışır).
 import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
-  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, END_TURU, turGrubu, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
+  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, END_TURU, turGrubu, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_EKRAN, YH_MADDE, YH_TESIS, YH_ISLEM, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
   DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
   KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, DIGER_YAZ, BURO_TURU, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
+import { sec, HAVUZ_ESLEME as HE, type SecimSonucu } from '~/utils/soruSecimi'
 
 export type Cevaplar = Record<string, any>
 // kayit: Site Yönetimi envanterindeki tek bir yapı / alan (yalnız yapı bilgileri sorulur; konutta "Site" seçeneği ve "başka kullanım" adımı yok).
@@ -16,7 +17,7 @@ export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolea
 export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa'; sinif?: SinifKod; ek?: Cevaplar; urun?: 'bina' | 'site' }
 export type Soru = {
   id: string
-  tip: 'secim' | 'coklu' | 'sayi' | 'metin' | 'bilgi'
+  tip: 'secim' | 'coklu' | 'gruplu' | 'sayi' | 'metin' | 'bilgi'
   grup: 'yapi' | 'diger'
   kisaAd: string
   baslik: string
@@ -36,6 +37,10 @@ export type Soru = {
   ikiSutun?: boolean
   // Listede "Diğer (Kendim Yazacağım)" var (Düzeltme 02): seçilince yazı alanı ve eşleştirme önerisi
   digerYaz?: boolean
+  // gruplu: tek ekranda birden fazla çok seçimli soru; cevap { [grup.id]: string[] } (yüksek tehlikeli yerler)
+  gruplar?: { id: string; baslik: string; secenekler: Secenek[]; coklu?: boolean }[]
+  // Başlığın üstünde küçük etiket (ör. "Yapı Kullanım Sınıfı: Yüksek Tehlikeli Yerler")
+  etiket?: string
 }
 
 const ALAN_SINIFLARI: SinifKod[] = ['kurumsal', 'buro', 'ticaret', 'toplanma']
@@ -44,7 +49,8 @@ const kisa = (s: SinifKod) => SINIFLAR[s].kisa
 const kucuk = (s: string) => s.toLocaleLowerCase('tr')
 const doluMu = (v: any) => v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0)
 // Tek seçimde cevap seçeneklerden biri olmalı: seçenekler daralınca eski cevap yeniden sorulur.
-const cevapliMi = (q: Soru, v: any) => q.tip === 'bilgi' ? false : q.tip === 'metin' ? v !== undefined : doluMu(v) && (q.tip !== 'secim' || !q.secenekler || q.secenekler.some(o => o.deger === v))
+const cevapliMi = (q: Soru, v: any) => q.tip === 'bilgi' ? false : q.tip === 'metin' ? v !== undefined :
+  q.tip === 'gruplu' ? !!v && (q.gruplar ?? []).every(g => Array.isArray(v[g.id]) && v[g.id].length > 0) : doluMu(v) && (q.tip !== 'secim' || !q.secenekler || q.secenekler.some(o => o.deger === v))
 
 // Değerlendirilen yer birden fazla yapıdan oluşabiliyor mu (konutta site, kurumsalda kampüs / yerleşke; konaklamada tatil köyü,
 // kamping, pansiyon, öğrenci yurdu ve diğer benzeri tesis — eski ekran dokümanı 4.4.2 / 4.5.2 / 4.6.2 / 4.7.2 / 4.8.2)?
@@ -193,9 +199,10 @@ export function akis(d: Degerlendirme): Soru[] {
     } else if (e === 'depolama') {
       depolamaSorulari('', 'yapi')
     } else if (e === 'yuksek') {
-      need({ id: 'yhFaaliyet', tip: 'secim', grup: 'yapi', sinif: 'yuksek', kisaAd: 'Faaliyet', baslik: 'Tesisinizde hangi tehlikeli madde ile faaliyet yürütülüyor?', secenekler: [...YH_FAALIYET, DIGER_YAZ], digerYaz: true })
-      need({ id: 'yhMod', tip: 'secim', grup: 'yapi', kisaAd: 'Faaliyet biçimi', baslik: 'Bu maddeler tesiste nasıl bulunuyor?', secenekler: YH_MOD })
-      if (c.yhMod === 'kendi') need({ id: 'yonlendirYH', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Tek başına Yüksek Tehlikeli Yer sayılmaz', aciklama: 'BYKHY Madde 17 bu sınıfı imal, depolama, doldurma-boşaltma ve satış ile tanımlar; yalnızca kendi ihtiyacı için kullanmak bu kapsamda değildir. Yapınız esas kullanımına göre değerlendirilir; yakıt / LPG kullanımı detaylı analizde ele alınır.', eylemler: [{ etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }] })
+      // Tek ekranda madde grupları, tesis / faaliyet türü ve işlemler (kullanıcı 18 Ekim 2026). İşlemler (üretim, depolama, dolum,
+      // boşaltım, satış…) BYKHY Md. 17 tanımındaki faaliyetlerdir; ayrıca "nasıl bulunuyor" sorulmaz.
+      need({ id: 'yhFaaliyetler', tip: 'gruplu', grup: 'yapi', sinif: 'yuksek', kisaAd: 'Faaliyetler', etiket: YH_EKRAN.etiket, baslik: YH_EKRAN.baslik, aciklama: YH_EKRAN.aciklama,
+        gruplar: [{ id: 'madde', baslik: YH_EKRAN.madde, secenekler: YH_MADDE }, { id: 'tesis', baslik: YH_EKRAN.tesis, secenekler: YH_TESIS }, { id: 'islem', baslik: YH_EKRAN.islem, secenekler: YH_ISLEM, coklu: true }] })
       need({ id: 'yhIliski', tip: 'secim', grup: 'yapi', kisaAd: 'Esas faaliyet mi', baslik: 'Bu faaliyet tesisin esas faaliyeti mi?', secenekler: YH_ILISKI })
       if (c.yhIliski === 'bolum') need({ id: 'yonlendirYHBolum', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Önce yapının esas kullanımını seçin', aciklama: 'Faaliyet başka amaçlı bir yapının bölümüyse, yapının esas kullanımını seçip bu faaliyeti “başka kullanım” adımında Yüksek Tehlikeli Yerler olarak ekleyin.', eylemler: [{ etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }] })
     }
@@ -245,6 +252,7 @@ export function cevapEtiketi(q: Soru, v: any, c?: Cevaplar): string {
   const yazi = c?.[`${q.id}_yazi`]
   if (yazi) return v === 'kendim' ? yazi : `${yazi} → ${q.secenekler?.find(s => s.deger === v)?.etiket ?? v}`
   if (q.tip === 'coklu') return (v as string[]).map(x => q.secenekler?.find(s => s.deger === x)?.etiket ?? x).join(', ')
+  if (q.tip === 'gruplu') return (q.gruplar ?? []).map(g => ((v?.[g.id] ?? []) as string[]).map(x => g.secenekler.find(s => s.deger === x)?.etiket ?? x).join(', ')).filter(Boolean).join(' · ')
   if (q.tip === 'sayi') return v === 'bilmiyorum' ? 'Bilmiyorum' : `${Number(v).toLocaleString('tr-TR')} ${q.birim ?? ''}`.trim()
   if (q.tip === 'metin') return v ? String(v) : 'Belirtilmedi'
   return q.secenekler?.find(s => s.deger === v)?.etiket ?? String(v)
@@ -264,6 +272,8 @@ export type Sonuc = {
   basliklar: string[]
   // Başlık listesinin üstündeki ad, ör. "Apartman + Restoran / Kafe Yangın Güvenliği"
   analizAdi: string
+  // Yapıya özel yönlendirme soruları (soru havuzu v6 + v7 seçim kuralı); seçilemezse null ve başlıklar gösterilir
+  sorular: { id: string; metin: string; konu: string }[] | null
 }
 
 const bandaGore = (deger: any, tablo: Record<string, number | null>, etiketler: Secenek[], adi: string): Pick<KullanimSonucu, 'periyot' | 'durum' | 'belirleyici'> => {
@@ -381,15 +391,19 @@ const TUR_SORUSU: Partial<Record<SinifKod, { id: string; secenekler: Secenek[]; 
   endustri: { id: 'endTuru', secenekler: END_TURU },
   toplanma: { id: 'toplanmaTuru', secenekler: TOPLANMA_TURU, digerde: true },
   depolama: { id: 'depoTuru', secenekler: DEPO_TURU, digerde: true },
-  yuksek: { id: 'yhFaaliyet', secenekler: YH_FAALIYET }
+  // Yüksek tehlikeli: tür, faaliyet ekranındaki ilk tesis türü (yoksa ilk madde grubu); bkz. yhTur
+  yuksek: { id: 'yhFaaliyetler', secenekler: [...YH_TESIS, ...YH_MADDE] }
 }
+// Gruplu cevaptan analiz başlıkları için tek tür: önce tesis / faaliyet türü, yoksa madde grubu.
+const yhTur = (v: any): string | undefined => v ? (v.tesis?.[0] ?? v.madde?.[0]) : undefined
 function analizBasliklari(c: Cevaplar, kullanimlar: KullanimSonucu[]): { basliklar: string[]; ad: string } {
   const birlikte = kullanimlar.filter(k => k.sinif && (k.iliski === 'esas' || k.iliski === 'ayni' || k.iliski === 'yardimci'))
   if (!birlikte.length) return { basliklar: METIN.basliklar, ad: METIN.analizAdiYedek }
   const parcalar = birlikte.map((k) => {
     const s = k.sinif!
     const soru = TUR_SORUSU[s]
-    const tur: string | undefined = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`d_${soru.id}`] : undefined)
+    const ham = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`d_${soru.id}`] : undefined)
+    const tur: string | undefined = s === 'yuksek' ? yhTur(ham) : ham
     // Düzeltme 02: kullanıcının yazdığı özgün ad aynen kullanılır
     const yazi: string | undefined = (soru && c[`${k.iliski === 'esas' ? soru.id : `d_${soru.id}`}_yazi`]) || (k.iliski === 'esas' ? c.yaziAd : undefined)
     const altTur = s === 'konut' && k.iliski === 'esas' && c.konutTuru !== 'site' ? KONUT_ALT_TURU[c.konutTuru as 'mustakil' | 'apartman']?.find(o => o.deger === c.konutAltTuru)?.etiket : undefined
@@ -451,5 +465,39 @@ export function hesapla(d: Degerlendirme): Sonuc {
   if (kullanimlar.some(k => k.durum === 'ana_parcasi')) notlar.push(METIN.yardimci)
   if (kullanimlar.some(k => k.durum === 'ayri_yapi')) notlar.push(METIN.ayriYapi)
   if (genel === 'tanimsiz') notlar.push(METIN.tanimsizNot)
-  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, ...(({ basliklar, ad }) => ({ basliklar, analizAdi: ad }))(analizBasliklari(c, kullanimlar)) }
+  const secim = yonlendirmeSecimi(c, kullanimlar)
+  return { kullanimlar, nihai, genel, surucu: gecerli.filter(k => k.periyot === nihai), notlar, ...(({ basliklar, ad }) => ({ basliklar, analizAdi: ad }))(analizBasliklari(c, kullanimlar)),
+    sorular: secim ? secim.sorular.map(q => ({ id: q.id, metin: q.metin, konu: q.topicGroup })) : null }
+}
+
+// ── Yapıya özel yönlendirme soruları (müşterinin soru havuzu v6 ve v7 çoklu seçim kuralı; utils/soruSecimi.ts) ─────
+// Esas kullanım + aynı yapıda birlikte bulunan kullanımlar (bağımsız veya yardımcı; ayrı yapılar hariç) → paket kimlikleri.
+// Tür sorulmamış ikinci kullanımda ve "Kendim Yazacağım"da sınıfın "Diğer …" paketi (kullanıcı 18 Ekim 2026).
+// Yüksek tehlikeli: madde / tesis / işlemler tek tesisin boyutları; aynı yapıdaki endüstriyel kullanım da boyut olarak eklenir.
+// Site sakini: kendi paketi; site yönetimi: yönetim paketi. Seçim yapılamazsa null (başlıklar gösterilir).
+function yonlendirmeSecimi(c: Cevaplar, kullanimlar: KullanimSonucu[]): SecimSonucu | null {
+  const birlikte = kullanimlar.filter(k => k.sinif && (k.iliski === 'esas' || k.iliski === 'ayni' || k.iliski === 'yardimci'))
+  const esas = birlikte.find(k => k.iliski === 'esas')
+  if (!esas?.sinif) return null
+  try {
+    if (esas.sinif === 'yuksek') {
+      const v = c.yhFaaliyetler ?? {}
+      const ids = [HE.yuksek.madde[v.madde?.[0]], HE.yuksek.tesis[v.tesis?.[0]], ...((v.islem ?? []) as string[]).map(x => HE.yuksek.islem[x]),
+        ...(birlikte.some(k => k.sinif === 'endustri' && k.iliski !== 'esas') ? [HE.diger.endustri] : [])].filter((x): x is string => !!x)
+      return sec('tek_tesis_farkli_boyut', ids)
+    }
+    if (esas.sinif === 'konut' && c.konutTuru === 'site') return c.siteKullanici === 'yonetim' ? sec('site_yonetimi', [HE.site.yonetim]) : sec('tek_secim', [HE.site.oturan])
+    const paket = (k: KullanimSonucu): string => {
+      const s = k.sinif!
+      if (s === 'konut') return (k.iliski === 'esas' && HE.esleme.konut?.[c.konutAltTuru]) || HE.diger.konut!
+      const soru = TUR_SORUSU[s]
+      const tur = soru && (k.iliski === 'esas' ? c[soru.id] : soru.digerde ? c[`d_${soru.id}`] : undefined)
+      return (tur && HE.esleme[s]?.[tur]) || HE.diger[s]!
+    }
+    // Yüksek tehlikeli bölüm başka bir yapının parçasıysa ön izlemede ayrı kullanım sayılmaz (algoritma kuralı).
+    const ids = [...new Set(birlikte.filter(k => k.sinif !== 'yuksek').map(paket))]
+    return ids.length ? sec(ids.length === 1 ? 'tek_secim' : 'ayni_bina', ids) : null
+  } catch {
+    return null
+  }
 }

@@ -10,6 +10,7 @@ useSeoMeta({
   description: 'Yapınızın kullanımına en uygun kullanım sınıfını seçin: konut, konaklama, kurumsal, büro, ticaret, endüstriyel, toplanma, depolama veya yüksek tehlikeli yer.'
 })
 
+const acik = reactive<Record<string, boolean>>({})
 const od = useOnDegerlendirme()
 const secili = ref<string | null>(null)
 // Önceki seçim, sayfa yüklendikten sonra işaretlenir (sunucu çizimiyle uyumsuzluk olmasın).
@@ -41,11 +42,18 @@ const devamEt = () => {
           :class="{ active: secili === k.kod }"
           @click="secili = k.kod"
         >
+          <!-- Sınıf fotoğrafı (kullanıcı 18 Ekim 2026) -->
+          <img class="opt-foto" :src="`/img/siniflar/${k.kod}.webp`" :alt="k.ad" width="800" height="600" loading="lazy">
+          <span class="opt-ic">
           <span class="num" :class="{ 'gold-num': secili === k.kod }">{{ i + 1 }}</span>
           <span class="opt-body">
             <span class="opt-title">{{ k.ad }}</span>
-            <span class="opt-text">{{ k.aciklama }}</span>
+            <!-- Açıklama metni değişmez; ilk 3 satır görünür, "Devamını oku" ile kutu içinde açılır -->
+            <span class="opt-text" :class="{ kisa: !acik[k.kod] }">{{ k.aciklama }}</span>
+            <span class="devam" role="button" tabindex="0" @click.stop="acik[k.kod] = !acik[k.kod]" @keydown.enter.stop.prevent="acik[k.kod] = !acik[k.kod]">{{ acik[k.kod] ? 'Kısalt' : 'Devamını oku' }}</span>
             <span class="opt-ref">Dayanak: BYKHY Madde {{ k.madde }}</span>
+            <span v-if="k.not" class="opt-not">{{ k.not }}</span>
+          </span>
           </span>
         </button>
       </div>
@@ -68,15 +76,20 @@ const devamEt = () => {
 .rule { margin: 16px 0 20px; }
 .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .option {
-  display: flex; gap: 14px; align-items: flex-start; text-align: left;
+  display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden; align-items: stretch; text-align: left;
   font: inherit; color: inherit; cursor: pointer;
   transition: border-color .15s, box-shadow .15s;
 }
 .option:hover { border-color: var(--gold-line); }
 .option.active { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold) inset; }
+.opt-foto { display: block; flex: none; width: 100%; height: 190px; object-fit: cover; }
+.opt-ic { display: flex; gap: 14px; align-items: flex-start; padding: 18px 20px 20px; }
+.opt-text.kisa { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.devam { align-self: flex-start; font-size: 13.5px; font-weight: 600; color: var(--gold); text-decoration: underline; cursor: pointer; }
 .opt-body { display: flex; flex-direction: column; gap: 6px; }
 .opt-title { font-family: var(--font-head); font-size: 20px; font-weight: 700; color: var(--navy); line-height: 1.15; }
-.opt-text { font-size: 14.5px; color: var(--ink); }
+.opt-text { font-size: 14.5px; color: var(--ink); white-space: pre-line; }
+.opt-not { margin-top: 6px; font-size: 14px; color: var(--ink); }
 .opt-ref { margin-top: 4px; font-family: var(--font-head); font-size: 13.5px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: .4px; }
 .bar {
   display: flex; justify-content: space-between; gap: 12px; margin-top: 20px;

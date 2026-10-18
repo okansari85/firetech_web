@@ -235,6 +235,44 @@ export const YH_FAALIYET: Secenek[] = [
   { deger: 'patlayici_depo', etiket: 'Patlayıcı Madde Depoları', grup: 'patlayici' },
   { deger: 'kimyasal', etiket: 'Kimyasal Madde İşleme ve Depolama Alanları' }
 ]
+// Yüksek tehlikeli yerler — "Tesisinizin Faaliyetlerini Belirleyelim" ekranı (kullanıcı 18 Ekim 2026, referans ekran; metinler birebir).
+// Tek ekranda üç soru: 1. ve 2. tek seçim, 3. (işlemler) çoklu seçim (kullanıcı). grup: analiz başlıklarında kullanılan tür grubu (gaz / patlayıcı / sıvı).
+export const YH_EKRAN = {
+  etiket: 'Yapı Kullanım Sınıfı: Yüksek Tehlikeli Yerler',
+  baslik: 'Tesisinizin Faaliyetlerini Belirleyelim',
+  aciklama: 'İşletmenize uygun seçenekleri işaretleyin.',
+  madde: '1. Tesisinizde hangi madde grupları bulunuyor?',
+  tesis: '2. İşletmeniz aşağıdaki tesis veya faaliyet türlerinden hangisine giriyor?',
+  islem: '3. Tesisinizde hangi işlemler yapılıyor?'
+}
+export const YH_MADDE: Secenek[] = [
+  { deger: 'gaz', etiket: 'Parlayıcı ve Patlayıcı Gazlar', grup: 'gaz' },
+  { deger: 'patlayici', etiket: 'Patlayıcı Maddeler', grup: 'patlayici' },
+  { deger: 'sivi', etiket: 'Yanıcı Sıvılar', grup: 'sivi' },
+  { deger: 'akaryakit', etiket: 'Akaryakıtlar', grup: 'sivi' },
+  { deger: 'ozel_madde', etiket: 'Özel Tehlike Oluşturan Maddeler' }
+]
+export const YH_TESIS: Secenek[] = [
+  { deger: 'akaryakit_tesis', etiket: 'Akaryakıt Tesisleri', grup: 'sivi' },
+  { deger: 'lpg_tesis', etiket: 'LPG Tesisleri', grup: 'gaz' },
+  { deger: 'lpg_tup', etiket: 'LPG Tüp Satış Noktaları', grup: 'gaz' },
+  { deger: 'akaryakit_istasyon', etiket: 'Akaryakıt Satış İstasyonları', grup: 'sivi' },
+  { deger: 'gaz_dolum', etiket: 'Yanıcı Gaz Dolum Tesisleri', grup: 'gaz' },
+  { deger: 'patlayici_depo', etiket: 'Patlayıcı Madde Depoları', grup: 'patlayici' },
+  { deger: 'kimyasal_isleme', etiket: 'Kimyasal Madde İşleme Alanları' },
+  { deger: 'kimyasal_depo', etiket: 'Kimyasal Madde Depolama Alanları' },
+  { deger: 'diger', etiket: 'Diğer Yüksek Tehlikeli Tesisler' }
+]
+export const YH_ISLEM: Secenek[] = [
+  { deger: 'uretim', etiket: 'Üretim' },
+  { deger: 'isleme', etiket: 'İşleme' },
+  { deger: 'karistirma', etiket: 'Karıştırma' },
+  { deger: 'depolama', etiket: 'Depolama' },
+  { deger: 'dolum', etiket: 'Dolum' },
+  { deger: 'bosaltim', etiket: 'Boşaltım' },
+  { deger: 'satis', etiket: 'Satış' },
+  { deger: 'diger', etiket: 'Diğer / Listede bulunmayan faaliyet' } // soru havuzu 09-C-008 (kullanıcı 18 Ekim 2026)
+]
 export const YH_MOD: Secenek[] = [
   { deger: 'faaliyet', etiket: 'Üretiliyor, depolanıyor, dolduruluyor, boşaltılıyor veya satılıyor' },
   { deger: 'kendi', etiket: 'Yalnızca kendi ihtiyacımız için kullanılıyor', aciklama: 'Kazan dairesi yakıt tankı, mutfak tüpü, jeneratör yakıtı gibi.' },

@@ -10,10 +10,18 @@ const props = defineProps<{ soru: Soru; deger?: any }>()
 const emit = defineEmits<{ cevap: [deger: any, ek?: Record<string, any>]; eylem: [e: Eylem] }>()
 
 const coklu = ref<string[]>(Array.isArray(props.deger) ? [...props.deger] : [])
+// gruplu (yüksek tehlikeli yerler): grup.coklu ise birden fazla, değilse bir şık (kullanıcı 18 Ekim 2026: 1-2 tek, 3 çoklu); cevap { [grup.id]: string[] }
+const grupSecim = ref<Record<string, string[]>>(props.deger && typeof props.deger === 'object' && !Array.isArray(props.deger) ? JSON.parse(JSON.stringify(props.deger)) : {})
+const grupToggle = (g: string, v: string, coklu?: boolean) => {
+  const l = grupSecim.value[g] ?? []
+  grupSecim.value = { ...grupSecim.value, [g]: l.includes(v) ? l.filter(x => x !== v) : coklu ? [...l, v] : [v] }
+}
+const grupIkon = (v: string) => (props.soru.sinif ? TUR_IKON[props.soru.sinif]?.[v] : undefined)
+const grupTamam = computed(() => (props.soru.gruplar ?? []).every(g => (grupSecim.value[g.id] ?? []).length > 0))
 const sayi = ref<string>(typeof props.deger === 'number' ? String(props.deger) : '')
 const metin = ref<string>(typeof props.deger === 'string' ? props.deger : '')
 const yardimAcik = ref(false)
-watch(() => props.soru.id, () => { coklu.value = []; sayi.value = ''; metin.value = ''; yardimAcik.value = false; digerAcik.value = false; yazi.value = '' })
+watch(() => props.soru.id, () => { coklu.value = []; grupSecim.value = {}; sayi.value = ''; metin.value = ''; yardimAcik.value = false; digerAcik.value = false; yazi.value = '' })
 
 // ── Diğer (Kendim Yazacağım) — Düzeltme 02 ──
 const digerAcik = ref(props.deger === 'kendim')
@@ -80,6 +88,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
       <strong>{{ soru.ust.baslik }}</strong>
       <p v-if="soru.ust.aciklama">{{ soru.ust.aciklama }}</p>
     </div>
+    <p v-if="soru.etiket" class="soru-etiket">{{ soru.etiket }}</p>
     <div class="ust">
       <h2>{{ soru.baslik }}</h2>
       <button v-if="yardim" type="button" class="yardim-btn" @click="yardimAcik = true"><AppIcon name="search" /> {{ yardim.baslik }}</button>
@@ -101,7 +110,7 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
     <!-- Tek seçim -->
     <div v-if="soru.tip === 'secim'" class="secenekler" :class="{ iki: soru.ikiSutun || (soru.secenekler?.length ?? 0) > 4 }">
       <button v-for="s in soru.secenekler" :key="s.deger" type="button" class="secenek" :class="{ secili: s.deger === 'kendim' ? digerAcik : deger === s.deger, kendim: s.deger === 'kendim' }" @click="s.deger === 'kendim' ? (digerAcik = !digerAcik) : emit('cevap', s.deger)">
-        <span class="s-etiket"><AppIcon v-if="s.deger === 'kendim'" name="kalem" class="kalem" /><TurIkonu v-else-if="turIkon?.[s.deger]" :name="turIkon[s.deger]!" class="tur-ikon" />{{ s.etiket }}</span>
+        <span class="s-etiket"><span v-if="s.deger === 'kendim'" class="ikon-kutu"><AppIcon name="kalem" /></span><span v-else-if="turIkon?.[s.deger]" class="ikon-kutu"><TurIkonu :name="turIkon[s.deger]!" /></span>{{ s.etiket }}</span>
         <span v-if="s.aciklama" class="s-aciklama">{{ s.aciklama }}</span>
         <span v-if="s.ornek" class="s-ornek">{{ s.ornek }}</span>
       </button>
@@ -152,6 +161,26 @@ const renk = computed(() => (props.soru.sinif ? SINIFLAR[props.soru.sinif].renk 
       <div class="alt"><button type="button" class="btn gold-btn" :disabled="!coklu.length" @click="emit('cevap', coklu)">Devam Et <AppIcon name="arrow" class="ico" /></button></div>
     </template>
 
+    <!-- Gruplu çoklu seçim: tek ekranda birden fazla soru (yüksek tehlikeli yerler, kullanıcı 18 Ekim 2026) -->
+    <template v-else-if="soru.tip === 'gruplu'">
+      <div v-for="g in soru.gruplar" :key="g.id" class="grup-blok" :role="g.coklu ? 'group' : 'radiogroup'" :aria-label="g.baslik">
+        <h3 class="grup-baslik">{{ g.baslik }}</h3>
+        <div class="secenekler iki">
+          <button v-for="s in g.secenekler" :key="s.deger" type="button" :role="g.coklu ? 'checkbox' : 'radio'" :aria-checked="(grupSecim[g.id] ?? []).includes(s.deger)" class="secenek" :class="{ secili: (grupSecim[g.id] ?? []).includes(s.deger) }" @click="grupToggle(g.id, s.deger, g.coklu)">
+            <!-- Tesis / faaliyet türü: tür listelerindeki ikonlu tasarım; işaret kutusu sağda (kullanıcı 18 Ekim 2026) -->
+            <!-- Tek seçimli sorular diğer sınıflardaki gibi: işaret kutusu yok, seçilen kart vurgulanır; tesis türünde ikon (kullanıcı 18 Ekim 2026) -->
+            <span v-if="g.id === 'tesis' && grupIkon(s.deger)" class="s-etiket"><span class="ikon-kutu"><TurIkonu :name="grupIkon(s.deger)!" /></span>{{ s.etiket }}</span>
+            <span v-else-if="!g.coklu" class="s-etiket">{{ s.etiket }}</span>
+            <span v-else class="s-etiket"><span class="kutu"><AppIcon v-if="(grupSecim[g.id] ?? []).includes(s.deger)" name="check" /></span>{{ s.etiket }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="alt">
+        <span v-if="!grupTamam" class="grup-not">Her sorudan en az bir seçenek işaretleyin.</span>
+        <button type="button" class="btn gold-btn" :disabled="!grupTamam" @click="emit('cevap', grupSecim)">Devam Et <AppIcon name="arrow" class="ico" /></button>
+      </div>
+    </template>
+
     <!-- Sayı -->
     <form v-else-if="soru.tip === 'sayi'" class="giris" @submit.prevent="sayiDegeri && emit('cevap', sayiDegeri)">
       <label class="sayi-kutu"><input v-model="sayi" type="text" inputmode="decimal" placeholder="Örn. 120" :aria-label="soru.kisaAd"><span>{{ soru.birim }}</span></label>
@@ -196,8 +225,13 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
 /* Diğer (Kendim Yazacağım) */
 .secenek.kendim .s-etiket { display: flex; align-items: center; gap: 8px; }
-.kalem { width: 20px; height: 20px; color: var(--gold); }
-.tur-ikon { width: 28px; height: 28px; flex: none; color: var(--navy); }
+/* İkon kutusu: sonuç panelindeki başlık ikonlarıyla birebir (.b-ikon; lacivert kare, açık altın ikon; kullanıcı 18 Ekim 2026) */
+.ikon-kutu {
+  display: grid; place-items: center; flex: none; width: 44px; height: 44px; border-radius: 10px;
+  background: var(--navy); color: #f5d27e;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .08);
+}
+.ikon-kutu svg { width: 24px; height: 24px; stroke-width: 2; }
 .diger { margin-top: 14px; padding: 16px; border: 1.5px solid var(--gold); border-radius: 10px; background: #fffbf2; display: flex; flex-direction: column; gap: 12px; }
 .diger-ust { display: flex; gap: 12px; align-items: flex-start; }
 .diger-ust strong, .oneri-ust strong { font-family: var(--font-head); font-size: 18px; color: var(--navy); }
@@ -237,6 +271,11 @@ h2 { font-size: clamp(24px, 2.4vw, 32px); text-transform: none; }
 .s-etiket { display: flex; align-items: center; gap: 10px; font-family: var(--font-head); font-size: 19px; font-weight: 700; color: var(--navy); line-height: 1.2; }
 .s-aciklama { font-size: 14.5px; color: var(--ink); }
 .s-ornek { font-size: 13.5px; color: var(--muted); }
+.soru-etiket { margin: 0 0 6px; font-family: var(--font-head); font-size: 13px; font-weight: 600; color: var(--gold); text-transform: uppercase; letter-spacing: .4px; }
+.grup-blok { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line, #e7e1d4); }
+.grup-blok:first-of-type { border-top: 0; padding-top: 0; }
+.grup-baslik { margin: 0 0 12px; font-family: var(--font-head); font-size: 19px; font-weight: 700; color: var(--navy); line-height: 1.25; }
+.grup-not { margin-right: auto; font-size: 13.5px; color: var(--muted, #6b7280); }
 .kutu { display: grid; place-items: center; width: 22px; height: 22px; flex: none; border: 1.5px solid var(--vurgu); border-radius: 5px; color: #fff; background: #fff; }
 .secili .kutu { background: var(--vurgu); }
 .kutu svg { width: 15px; height: 15px; }

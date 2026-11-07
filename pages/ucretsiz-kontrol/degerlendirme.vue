@@ -1,14 +1,21 @@
 <script setup lang="ts">
 // Ücretsiz ön değerlendirme: solda sırayla sorular (motor belirler), sağda canlı bina görünümü; sonunda sonuç.
-// Backend'siz çalışır; kurallar utils/onDegerlendirmeMotoru.ts, metinler data/onDegerlendirme.ts.
+// Kurallar tarayıcıda (utils/onDegerlendirmeMotoru.ts, metinler data/onDegerlendirme.ts); sonuç backend'e kaydedilir.
 import { SINIFLAR, KARMA_YOK, METIN } from '~/data/onDegerlendirme'
 import { cevapEtiketi, type Eylem } from '~/utils/onDegerlendirmeMotoru'
 
 useSeoMeta({ title: 'Ücretsiz Ön Değerlendirme', description: 'Binanızın periyodik yangın kontrol süresini birkaç soruda öğrenin.' })
 
 const od = useOnDegerlendirme()
-const { analiziBaslat } = useUyelik()
+const { analiziBaslat, degerlendirmeKaydet } = useUyelik()
 const { d, mevcut, cevaplananlar, sonuc, tamam } = od
+
+// Sonuç çıkınca (ve "Düzenle" sonrası her yeni sonuçta) backend'e kaydedilir: Hesabım'daki geçmiş, ücretli analize devir.
+watch(tamam, async (t) => {
+  if (!t) return
+  const uuid = await degerlendirmeKaydet(d.value, sonuc.value)
+  if (uuid && uuid !== d.value.uuid) od.uuidYaz(uuid)
+}, { immediate: true })
 const soruAlani = ref<HTMLElement | null>(null)
 
 onMounted(() => { if (!d.value.esas) navigateTo('/ucretsiz-kontrol/kullanim-sinifi') })

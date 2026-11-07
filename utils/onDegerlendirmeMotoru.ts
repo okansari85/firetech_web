@@ -11,7 +11,8 @@ import { sec, HAVUZ_ESLEME as HE, type SecimSonucu } from '~/utils/soruSecimi'
 
 export type Cevaplar = Record<string, any>
 // kayit: Site Yönetimi envanterindeki tek bir yapı / alan (yalnız yapı bilgileri sorulur; konutta "Site" seçeneği ve "başka kullanım" adımı yok).
-export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolean }
+// uuid: backend'deki kaydı (firetech pre_assessments); yeni değerlendirmede (baslat / sifirla) düşer.
+export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolean; uuid?: string }
 
 // sayfa: ücretli ürüne geçiş (üyelik → ödeme → ürün; composables/useUyelik.ts)
 // tip 'diger': eklenen diğer kullanım (sira) başka sınıfa çevrilir (yazılan tür o sınıfa aitse; kullanıcı 18 Ekim 2026)

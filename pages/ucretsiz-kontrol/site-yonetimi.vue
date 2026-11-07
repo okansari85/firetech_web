@@ -11,8 +11,8 @@ useSeoMeta({ title: 'Site Yönetimi', description: 'Sitenizdeki yapı ve ortak k
 const sy = useSiteYonetimi()
 const { d } = sy
 // Ödeme yapılmadan bu sayfa açılmaz: üye değilse giriş / üyelik, sonra ödeme.
-const { odendi, analiziBaslat } = useUyelik()
-onMounted(() => { if (!odendi('site')) analiziBaslat('site') })
+const { yukle, odendi, analiziBaslat } = useUyelik()
+onMounted(async () => { await yukle(); if (!odendi('site')) analiziBaslat('site') })
 
 // ── Sitenizi tanıyalım ──
 const kategoriSec = (kod: string) => {

@@ -1,20 +1,16 @@
-// Ücretli ürünler (TASLAK ödeme ekranı). Fiyatlara KDV dahil değildir (kullanıcı kararı, 11 Ekim).
-// Tutarlar kullanıcıdan (17 Ekim): bina 19,99 TL; site 19,90 TL (Düzeltmeler belgesi).
+// Ücretli ürünler. Fiyat ve tahsil edilen tutar backend'den gelir (firetech: FIRETECH_PRICE_BINA / _SITE, KDV hariç + %20 KDV).
 export type UrunKod = 'bina' | 'site'
 
-export const URUNLER: Record<UrunKod, { ad: string; aciklama: string; fiyat: number | null; sonra: string }> = {
+export const URUNLER: Record<UrunKod, { ad: string; aciklama: string }> = {
   bina: {
     ad: 'Detaylı Yangın Güvenliği Analizi',
-    aciklama: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini görün, eksikleri önceden belirleyin ve periyodik kontrole hazırlanın.',
-    fiyat: 19.99,
-    sonra: '/odeme?urun=bina&tamam=1'
+    aciklama: 'Yapınıza ve kullanım türlerinize özel kontrol maddelerini görün, eksikleri önceden belirleyin ve periyodik kontrole hazırlanın.'
   },
   site: {
     ad: 'Site / Yerleşke Yönetimi',
-    aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi',
-    fiyat: 19.9,
-    sonra: '/ucretsiz-kontrol/site-yonetimi'
+    aciklama: 'Yapı, Tesis ve Ortak Kullanım Alanlarının Periyodik Kontrol Değerlendirmesi'
   }
 }
 
-export const fiyatYazi = (f: number | null) => (f === null ? 'XX,XX' : f.toLocaleString('tr-TR', { minimumFractionDigits: 2 }))
+// Kuruş → "1.234,56"
+export const tlYazi = (kurus: number) => (kurus / 100).toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })

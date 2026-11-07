@@ -1,23 +1,51 @@
 <script setup lang="ts">
-// Ödeme (TASLAK): gerçek ödeme alınmaz. Kart alanları deneme kartıyla dolu ve kilitli (gerçek kart bilgisi girilemez).
-// ?urun=bina|site ; ödeme sonrası URUNLER[urun].sonra. Üye değilse girişe yönlendirilir.
-import { URUNLER, fiyatYazi, type UrunKod } from '~/data/urunler'
+// Ödeme: PayTR iFrame. ?urun=bina|site. Tutar backend'de hesaplanır (fiyat KDV hariç + %20 KDV); kart bilgisi PayTR'nin
+// kutusunda girilir, siteye gelmez. Sonuç PayTR bildirimiyle backend'e yazılır; dönüş /odeme-basarili, /odeme-basarisiz.
+import { URUNLER, tlYazi, type UrunKod } from '~/data/urunler'
+import { hataMesaji } from '~/composables/useUyelik'
 
 useSeoMeta({ title: 'Ödeme', description: 'Detaylı analiz ödemesi.' })
+useHead({ script: [{ src: 'https://www.paytr.com/js/iframeResizer.min.js', defer: true }] })
 
 const route = useRoute()
-const { uye, odemeKaydet } = useUyelik()
+const { uye, yukle, fiyat, odemeBaslat } = useUyelik()
+const { d } = useOnDegerlendirme()
 const urunKod = computed(() => (route.query.urun === 'site' ? 'site' : 'bina') as UrunKod)
 const urun = computed(() => URUNLER[urunKod.value])
-const tamam = computed(() => route.query.tamam === '1')
-const isleniyor = ref(false)
+const tutar = computed(() => fiyat(urunKod.value))
+// Bina analizi tamamlanmış (kaydedilmiş) ücretsiz değerlendirmeye bağlanır.
+const degerlendirmeYok = computed(() => urunKod.value === 'bina' && !d.value.uuid)
 
-onMounted(() => { if (!uye.value) navigateTo(`/giris?devam=${encodeURIComponent(route.fullPath)}`) })
+const hazirlaniyor = ref(true)
+const f = reactive({ ad: '', telefon: '', adres: '', onay: false })
+const hata = ref('')
+const gonderiliyor = ref(false)
+const paytrToken = ref('')
 
-const ode = () => {
-  isleniyor.value = true
-  // Gerçek ödeme yok: kısa bir bekleme, ödeme bu tarayıcıda kaydedilir.
-  setTimeout(() => { odemeKaydet(urunKod.value); navigateTo(urun.value.sonra) }, 900)
+onMounted(async () => {
+  await yukle()
+  if (!uye.value) return navigateTo(`/giris?devam=${encodeURIComponent(route.fullPath)}`, { replace: true })
+  f.ad = uye.value.name
+  f.telefon = uye.value.phone || ''
+  hazirlaniyor.value = false
+})
+
+const hazir = computed(() => !!tutar.value && !degerlendirmeYok.value && f.ad.trim().length >= 3 && f.telefon.trim().length >= 10 && f.adres.trim().length >= 10 && f.onay)
+
+const ode = async () => {
+  if (!hazir.value || gonderiliyor.value) return
+  hata.value = ''
+  gonderiliyor.value = true
+  try {
+    const r = await odemeBaslat(urunKod.value, { name: f.ad.trim(), phone: f.telefon.trim(), address: f.adres.trim(), agreements: f.onay })
+    paytrToken.value = r.token
+    await nextTick()
+    ;(window as any).iFrameResize?.({}, '#paytriframe')
+  } catch (e) {
+    hata.value = hataMesaji(e)
+  } finally {
+    gonderiliyor.value = false
+  }
 }
 </script>
 
@@ -26,42 +54,51 @@ const ode = () => {
     <div class="wrap dar">
       <SectionTag label="Ödeme" />
 
-      <!-- Ödeme tamamlandı (bina analizi: analiz ekranları henüz yok) -->
-      <div v-if="tamam" class="card kutu ortala">
-        <span class="onay"><AppIcon name="check" /></span>
-        <h1 class="baslik">Ödemeniz alındı</h1>
-        <p class="muted">{{ urun.ad }}</p>
-        <NuxtLink to="/ucretsiz-kontrol/degerlendirme" class="btn ghost">Ön değerlendirme sonucuna dön</NuxtLink>
-      </div>
+      <ClientOnly>
+        <div v-if="hazirlaniyor" class="card kutu"><p class="muted">Yükleniyor…</p></div>
 
-      <div v-else class="izgara">
-        <!-- Kart bilgileri (kilitli deneme kartı) -->
-        <div class="card kutu">
-          <h1 class="baslik">Ödeme Bilgileri</h1>
-          <div class="kart-on">
-            <span class="cip-ikon" />
-            <span class="no">4242 4242 4242 4242</span>
-            <span class="alt"><span>{{ uye?.ad?.toLocaleUpperCase('tr') || 'AD SOYAD' }}</span><span>12/30</span></span>
-          </div>
-          <label>Kart Üzerindeki İsim<input :value="uye?.ad ?? ''" type="text" readonly></label>
-          <label>Kart Numarası<input value="4242 4242 4242 4242" type="text" readonly></label>
-          <div class="iki">
-            <label>Son Kullanma<input value="12/30" type="text" readonly></label>
-            <label>CVV<input value="•••" type="text" readonly></label>
-          </div>
-          <p class="deneme"><AppIcon name="alert" /> Deneme ödeme ekranı: kartınızdan çekim yapılmaz, kart bilgisi istenmez.</p>
+        <!-- PayTR ödeme kutusu -->
+        <div v-else-if="paytrToken" class="card kutu">
+          <h1 class="baslik">Kart Bilgileri</h1>
+          <iframe id="paytriframe" :src="`https://www.paytr.com/odeme/guvenli/${paytrToken}`" title="PayTR güvenli ödeme" frameborder="0" scrolling="no" class="paytr" />
+          <small class="guven"><AppIcon name="shield" /> Kart bilgileriniz PayTR güvenli ödeme altyapısında işlenir, FireTech'e ulaşmaz.</small>
         </div>
 
-        <!-- Sipariş özeti -->
-        <aside class="card kutu ozet">
-          <h3>Sipariş Özeti</h3>
-          <div class="urun"><strong>{{ urun.ad }}</strong><small>{{ urun.aciklama }}</small></div>
-          <div class="tutar"><span>Ödenecek tutar</span><strong>{{ fiyatYazi(urun.fiyat) }} TL</strong></div>
-          <small class="muted">Fiyatlara KDV dahil değildir.</small>
-          <button type="button" class="btn analiz-btn" :disabled="isleniyor" @click="ode">{{ isleniyor ? 'İşleniyor…' : 'Ödemeyi Tamamla' }} <AppIcon v-if="!isleniyor" name="arrow" class="ico" /></button>
-          <small class="guven"><AppIcon name="lock" /> Güvenli ödeme</small>
-        </aside>
-      </div>
+        <div v-else class="izgara">
+          <div class="card kutu">
+            <h1 class="baslik">Fatura Bilgileri</h1>
+            <p v-if="degerlendirmeYok" class="uyari" role="alert">
+              Detaylı analiz, tamamladığınız ücretsiz ön değerlendirmeye göre hazırlanır.
+              <NuxtLink to="/ucretsiz-kontrol/kullanim-sinifi">Ücretsiz Kontrol</NuxtLink>
+            </p>
+            <form class="form" novalidate @submit.prevent="ode">
+              <label>Ad Soyad<input v-model="f.ad" type="text" autocomplete="name"></label>
+              <label>Telefon<input v-model="f.telefon" type="tel" autocomplete="tel" placeholder="05xx xxx xx xx"></label>
+              <label>Fatura Adresi<textarea v-model="f.adres" rows="3" autocomplete="street-address" /></label>
+              <label class="onay">
+                <input v-model="f.onay" type="checkbox">
+                <span><NuxtLink to="/mesafeli-satis-sozlesmesi" target="_blank">Mesafeli Satış Sözleşmesi</NuxtLink>'ni ve <NuxtLink to="/on-bilgilendirme-formu" target="_blank">Ön Bilgilendirme Formu</NuxtLink>'nu okudum, kabul ediyorum. Analize başladığımda cayma hakkımın sona ereceğini biliyorum (<NuxtLink to="/iptal-iade-kosullari" target="_blank">İptal ve İade Koşulları</NuxtLink>).</span>
+              </label>
+              <p v-if="hata" class="hata" role="alert">{{ hata }}</p>
+              <button type="submit" class="btn analiz-btn" :disabled="!hazir || gonderiliyor">{{ gonderiliyor ? 'Hazırlanıyor…' : 'Ödemeye Geç' }} <AppIcon v-if="!gonderiliyor" name="arrow" class="ico" /></button>
+            </form>
+          </div>
+
+          <aside class="card kutu ozet">
+            <h3>Sipariş Özeti</h3>
+            <div class="urun"><strong>{{ urun.ad }}</strong><small>{{ urun.aciklama }}</small></div>
+            <template v-if="tutar">
+              <dl class="dokum">
+                <div><dt>Bedel (KDV hariç)</dt><dd>{{ tlYazi(tutar.net) }} TL</dd></div>
+                <div><dt>KDV (%20)</dt><dd>{{ tlYazi(tutar.vat) }} TL</dd></div>
+              </dl>
+              <div class="tutar"><span>Ödenecek tutar</span><strong>{{ tlYazi(tutar.total) }} TL</strong></div>
+            </template>
+            <div v-else class="tutar"><span>Ödenecek tutar</span><strong class="kucuk">Fiyat belirlenecek</strong></div>
+            <small class="guven"><AppIcon name="shield" /> PayTR güvenli ödeme · Tek çekim</small>
+          </aside>
+        </div>
+      </ClientOnly>
     </div>
   </section>
 </template>
@@ -70,29 +107,34 @@ const ode = () => {
 .sayfa { padding-top: 40px; }
 .dar { max-width: 1000px; }
 .izgara { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; margin-top: 20px; align-items: start; }
-.kutu { display: flex; flex-direction: column; gap: 14px; }
-.ortala { align-items: center; text-align: center; margin-top: 20px; max-width: 560px; }
+.kutu { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+.izgara .kutu { margin-top: 0; }
 .baslik { font-size: clamp(24px, 2.6vw, 32px); text-transform: none; }
 .muted { color: var(--muted); }
-.kart-on { position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 170px; padding: 18px 22px; border-radius: 14px; color: #fff; background: linear-gradient(135deg, var(--navy) 0%, #1b4a6e 100%); box-shadow: 0 14px 30px -16px rgba(12, 40, 64, .8); }
-.cip-ikon { width: 42px; height: 30px; border-radius: 6px; background: linear-gradient(135deg, #e9c46a, #b98a2f); }
-.kart-on .no { font-family: var(--font-head); font-size: 24px; letter-spacing: 2px; }
-.kart-on .alt { display: flex; justify-content: space-between; font-family: var(--font-head); font-size: 14px; letter-spacing: 1px; color: #c9d3de; }
-label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; color: var(--navy); }
-input { min-height: 46px; padding: 0 14px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-weight: 400; color: var(--muted); background: var(--paper); }
-.iki { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form { display: flex; flex-direction: column; gap: 14px; }
+.form label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; color: var(--navy); }
+.form input[type='text'], .form input[type='tel'], .form textarea { min-height: 46px; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font: inherit; font-weight: 400; color: var(--ink); resize: vertical; }
+.form input:focus, .form textarea:focus { outline: none; border-color: var(--gold); }
+.form .onay { flex-direction: row; align-items: flex-start; gap: 10px; font-weight: 400; color: var(--ink); font-size: 14.5px; }
+.form .onay input { width: 20px; height: 20px; margin-top: 2px; flex: none; accent-color: var(--navy); }
+.onay a, .uyari a { color: var(--navy); font-weight: 600; }
+.uyari { padding: 12px 14px; border-radius: 8px; background: #fbeaea; color: var(--red); font-weight: 600; }
+.hata { color: var(--red); font-size: 14px; }
 .ozet h3 { text-transform: none; font-size: 20px; }
 .urun strong { display: block; font-family: var(--font-head); font-size: 18px; color: var(--navy); }
 .urun small { display: block; margin-top: 4px; color: var(--muted); }
-.tutar { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 16px; border-radius: 10px; background: var(--navy); color: #c9d3de; }
+.dokum { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.dokum div { display: flex; justify-content: space-between; }
+.dokum dt { color: var(--muted); }
+.dokum dd { margin: 0; font-weight: 600; color: var(--navy); }
+.tutar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px; border-radius: 10px; background: var(--navy); color: #c9d3de; }
 .tutar strong { font-family: var(--font-head); font-size: 34px; color: var(--gold-2); }
+.tutar strong.kucuk { font-size: 20px; }
 .analiz-btn { justify-content: center; min-height: 56px; background: var(--navy); border-color: var(--navy); color: var(--gold-2); font-size: 18px; }
 .analiz-btn:hover { background: var(--navy-2); border-color: var(--navy-2); color: var(--gold-2); }
 .ico { width: 20px; height: 20px; }
-.guven { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--muted); }
-.guven svg, .deneme svg { width: 16px; height: 16px; flex: none; }
-.deneme { display: flex; gap: 8px; align-items: center; font-size: 13.5px; color: var(--muted); }
-.onay { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; background: var(--navy); color: var(--gold-2); }
-.onay svg { width: 34px; height: 34px; }
+.guven { display: flex; gap: 6px; align-items: center; justify-content: center; color: var(--muted); text-align: center; }
+.guven svg { width: 16px; height: 16px; flex: none; }
+.paytr { width: 100%; min-height: 620px; border: 0; }
 @media (max-width: 860px) { .izgara { grid-template-columns: 1fr; } }
 </style>

@@ -1,24 +1,38 @@
 <script setup lang="ts">
-// Giriş / Üye Ol (TASLAK: hesap yalnız bu tarayıcıda tutulur; composables/useUyelik.ts).
-// ?devam=… : girişten sonra gidilecek sayfa (ör. ödeme). Detaylı analiz butonları buraya üye değilse gönderir.
+// Giriş / Üye Ol: firetech backend (composables/useUyelik.ts). Giriş yapılmışsa Hesabım'a ya da ?devam= sayfasına gider.
+// ?devam=… : girişten sonra gidilecek sayfa (ör. ödeme). Detaylı analiz düğmeleri üye değilse buraya gönderir.
+import { hataMesaji } from '~/composables/useUyelik'
+
 useSeoMeta({ title: 'Giriş', description: 'FireTech hesabınıza giriş yapın veya üye olun.' })
 
 const route = useRoute()
-const { uye, girisYap, cikis } = useUyelik()
-const devam = computed(() => (typeof route.query.devam === 'string' && route.query.devam.startsWith('/') ? route.query.devam : ''))
+const { uye, yukle, girisYap, uyeOl } = useUyelik()
+const devam = computed(() => (typeof route.query.devam === 'string' && route.query.devam.startsWith('/') && !route.query.devam.startsWith('//') ? route.query.devam : ''))
 const sekme = ref<'giris' | 'uye'>('uye')
 const f = reactive({ ad: '', eposta: '', telefon: '', sifre: '' })
 const hata = ref('')
+const gonderiliyor = ref(false)
+
+const git = () => navigateTo(devam.value || '/hesabim', { replace: true })
+onMounted(async () => { await yukle(); if (uye.value) git() })
 
 const epostaGecerli = computed(() => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.eposta.trim()))
-const hazir = computed(() => epostaGecerli.value && f.sifre.length >= 6 && (sekme.value === 'giris' || f.ad.trim().length >= 3))
+const hazir = computed(() => epostaGecerli.value && f.sifre.length >= (sekme.value === 'uye' ? 8 : 1) && (sekme.value === 'giris' || f.ad.trim().length >= 3))
 
-const gonder = () => {
-  if (!hazir.value) { hata.value = 'Lütfen bilgileri eksiksiz girin.'; return }
-  const ad = sekme.value === 'uye' ? f.ad.trim() : f.eposta.split('@')[0]!
-  girisYap({ ad, eposta: f.eposta.trim() })
-  f.sifre = ''
-  if (devam.value) navigateTo(devam.value)
+const gonder = async () => {
+  if (!hazir.value || gonderiliyor.value) { hata.value = 'Lütfen bilgileri eksiksiz girin.'; return }
+  hata.value = ''
+  gonderiliyor.value = true
+  try {
+    if (sekme.value === 'uye') await uyeOl({ name: f.ad.trim(), email: f.eposta.trim(), phone: f.telefon.trim(), password: f.sifre })
+    else await girisYap(f.eposta.trim(), f.sifre)
+    f.sifre = ''
+    git()
+  } catch (e) {
+    hata.value = hataMesaji(e)
+  } finally {
+    gonderiliyor.value = false
+  }
 }
 </script>
 
@@ -27,19 +41,7 @@ const gonder = () => {
     <div class="wrap dar">
       <SectionTag label="Hesabım" />
 
-      <!-- Giriş yapılmış -->
-      <div v-if="uye" class="card kutu">
-        <h1 class="baslik">Hoş geldiniz, {{ uye.ad }}</h1>
-        <p class="muted">{{ uye.eposta }}</p>
-        <div class="dugmeler">
-          <NuxtLink v-if="devam" :to="devam" class="btn analiz-btn">Devam Et <AppIcon name="arrow" class="ico" /></NuxtLink>
-          <NuxtLink v-else to="/ucretsiz-kontrol/kullanim-sinifi" class="btn analiz-btn">Ücretsiz Kontrol Et <AppIcon name="arrow" class="ico" /></NuxtLink>
-          <button type="button" class="btn ghost" @click="cikis">Çıkış Yap</button>
-        </div>
-      </div>
-
-      <!-- Giriş / Üye ol -->
-      <div v-else class="card kutu">
+      <div class="card kutu">
         <p v-if="devam" class="bilgi"><AppIcon name="shield" /> Detaylı analize devam etmek için giriş yapın veya üye olun.</p>
         <div class="sekmeler" role="tablist">
           <button type="button" role="tab" :aria-selected="sekme === 'uye'" :class="{ aktif: sekme === 'uye' }" @click="sekme = 'uye'; hata = ''">Üye Ol</button>
@@ -49,11 +51,11 @@ const gonder = () => {
           <label v-if="sekme === 'uye'">Ad Soyad<input v-model="f.ad" type="text" autocomplete="name"></label>
           <label>E-posta<input v-model="f.eposta" type="email" autocomplete="email"></label>
           <label v-if="sekme === 'uye'">Telefon<input v-model="f.telefon" type="tel" autocomplete="tel" placeholder="05xx xxx xx xx"></label>
-          <label>Şifre<input v-model="f.sifre" type="password" :autocomplete="sekme === 'uye' ? 'new-password' : 'current-password'" placeholder="En az 6 karakter"></label>
-          <p v-if="hata" class="hata">{{ hata }}</p>
-          <button type="submit" class="btn analiz-btn" :disabled="!hazir">{{ sekme === 'uye' ? 'Üye Ol ve Devam Et' : 'Giriş Yap' }} <AppIcon name="arrow" class="ico" /></button>
+          <label>Şifre<input v-model="f.sifre" type="password" :autocomplete="sekme === 'uye' ? 'new-password' : 'current-password'" :placeholder="sekme === 'uye' ? 'En az 8 karakter' : ''"></label>
+          <p v-if="hata" class="hata" role="alert">{{ hata }}</p>
+          <button type="submit" class="btn analiz-btn" :disabled="!hazir || gonderiliyor">{{ gonderiliyor ? 'Lütfen bekleyin…' : sekme === 'uye' ? 'Üye Ol ve Devam Et' : 'Giriş Yap' }} <AppIcon v-if="!gonderiliyor" name="arrow" class="ico" /></button>
         </form>
-        <p class="deneme"><AppIcon name="alert" /> Deneme sürümü: hesap bilgileri yalnızca bu tarayıcıda tutulur.</p>
+        <p v-if="sekme === 'uye'" class="deneme">Üye olarak <NuxtLink to="/kvkk-aydinlatma-metni">KVKK Aydınlatma Metni</NuxtLink>'ni okuduğunuzu kabul edersiniz.</p>
       </div>
     </div>
   </section>

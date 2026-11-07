@@ -1,0 +1,29 @@
+// Satıcı bilgileri: yasal sayfalar ve alt bilgi buradan alır (PKTakip tanıtım sitesiyle aynı şirket; kullanıcı, 7 Kasım 2026).
+export const SELLER = {
+  title:
+    'FIRETECH YANGIN TEKNOLOJİLERİ YAZILIM ARAŞTIRMA GELİŞTİRME MÜHENDİSLİK EĞİTİM VE DANIŞMANLIK SANAYİ VE TİCARET LİMİTED ŞİRKETİ',
+  // Vergi levhasındaki kısa unvan
+  shortTitle: 'FIRETECH YANGIN TEKNOLOJİLERİ YAZILIM ARAŞTIRMA GELİŞTİRME MÜH.EĞT.VE DAN.SAN.VE TİC.LTD.ŞTİ.',
+  address: 'Kiremitçi Mah. Tamer Sk. Kiremitçi Sinan Bey Konutları 4. Etap Sitesi D1 Blok No: 29 İç Kapı No: 4 Osmangazi/Bursa',
+  taxOffice: 'Yıldırım',
+  taxNo: '3861091773',
+  mersis: '0386109177300001',
+  tradeRegistry: 'Bursa, 140941',
+  phones: [
+    { label: '0552 521 84 64', tel: '+905525218464' },
+    { label: '0530 717 38 54', tel: '+905307173854' }
+  ],
+  email: 'bilgi@firetech-ai.com',
+  web: 'https://firetech-ai.com'
+}
+
+export const LEGAL_UPDATED = '7 Kasım 2026'
+
+export const LEGAL_PAGES = [
+  { label: 'Mesafeli Satış Sözleşmesi', to: '/mesafeli-satis-sozlesmesi' },
+  { label: 'Ön Bilgilendirme Formu', to: '/on-bilgilendirme-formu' },
+  { label: 'İptal ve İade Koşulları', to: '/iptal-iade-kosullari' },
+  { label: 'Gizlilik Politikası', to: '/gizlilik-politikasi' },
+  { label: 'KVKK Aydınlatma Metni', to: '/kvkk-aydinlatma-metni' },
+  { label: 'Çerez Politikası', to: '/cerez-politikasi' }
+]

@@ -21,8 +21,9 @@ export default defineNuxtConfig({
     }
   },
   // Ön değerlendirme sayfası tarayıcıda saklanan cevaplarla çalışır; sunucuda çizilmez.
-  routeRules: { '/ucretsiz-kontrol/degerlendirme': { ssr: false } },
+  routeRules: { '/ucretsiz-kontrol/degerlendirme': { ssr: false }, '/ucretli-analiz': { ssr: false } },
   runtimeConfig: {
-    public: { apiBase: 'http://localhost:8000/api' }
+    // Canlıda aynı alan adı (nginx /api → firetech backend). Yerelde: NUXT_PUBLIC_API_BASE=http://localhost:8100/api
+    public: { apiBase: '/api' }
   }
 })

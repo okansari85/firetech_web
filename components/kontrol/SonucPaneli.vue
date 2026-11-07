@@ -76,7 +76,7 @@ const soruIkonu = (q: { metin: string; konu: string }) => KONU_IKON[q.konu] ?? b
         <p class="deger">{{ METIN.degerMetni.replace('{A}', sonuc.kullanimAdlari) }}</p>
       </div>
       <div class="dugmeler">
-        <button type="button" class="btn analiz-btn" @click="analiziBaslat('bina')">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></button>
+        <button type="button" class="btn analiz-btn" @click="navigateTo('/ucretli-analiz')">{{ METIN.cta }} <AppIcon name="arrow" class="ico" /></button>
         <button type="button" class="btn ghost" @click="emit('duzenle')">Cevapları Düzenle</button>
         <button type="button" class="link" @click="emit('yeni')">Yeni değerlendirme</button>
       </div>

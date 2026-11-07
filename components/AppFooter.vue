@@ -24,6 +24,10 @@ import { bilesenler } from '~/data/ekosistem'
           <NuxtLink to="/giris">Detaylı Analiz</NuxtLink>
           <NuxtLink to="/iletisim">İletişim</NuxtLink>
         </nav>
+        <nav aria-label="Yasal">
+          <h4>Yasal</h4>
+          <NuxtLink v-for="p in LEGAL_PAGES" :key="p.to" :to="p.to">{{ p.label }}</NuxtLink>
+        </nav>
       </div>
       <div class="bottom">
         <span>© {{ new Date().getFullYear() }} FireTech</span>
@@ -35,7 +39,7 @@ import { bilesenler } from '~/data/ekosistem'
 
 <style scoped>
 .footer { margin-top: 0; padding: 48px 0 28px; background: var(--paper); }
-.cols { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 32px; padding: 36px 0 28px; }
+.cols { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 32px; padding: 36px 0 28px; }
 .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .brand img { width: 32px; height: auto; }
 .brand-name { font-family: var(--font-head); font-weight: 800; font-size: 24px; letter-spacing: 1px; color: var(--navy); }
@@ -45,5 +49,6 @@ nav { display: flex; flex-direction: column; gap: 6px; }
 nav a { color: var(--ink); text-decoration: none; font-size: 15px; }
 nav a:hover { color: var(--gold); }
 .bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 24px; padding-top: 18px; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; }
+@media (max-width: 1000px) { .cols { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 760px) { .cols { grid-template-columns: 1fr; gap: 24px; } }
 </style>

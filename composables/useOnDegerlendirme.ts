@@ -58,6 +58,9 @@ export const useOnDegerlendirme = () => {
     }
   }
   const sifirla = () => { d.value = { esas: null, c: {} }; kaydet() }
+  const uuidYaz = (uuid: string) => { d.value = { ...d.value, uuid }; kaydet() }
+  // Hesabım'daki kayıtlı değerlendirmeyi açar (sonuç güncel motorla yeniden hesaplanır).
+  const kayittanAc = (esas: SinifKod, c: Cevaplar, uuid: string) => { d.value = { esas, c, uuid }; kaydet() }
 
-  return { d, sorular, mevcut, cevaplananlar, sonuc, tamam, baslat, cevapla, degistir, geri, eylem, sifirla }
+  return { d, sorular, mevcut, cevaplananlar, sonuc, tamam, baslat, cevapla, degistir, geri, eylem, sifirla, uuidYaz, kayittanAc }
 }

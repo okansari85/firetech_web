@@ -1,6 +1,14 @@
 <script setup lang="ts">
-// Taslak üyelik: giriş yapılmışsa "Hesabım" (composables/useUyelik.ts)
-const { uye } = useUyelik()
+// Giriş yapılmışsa "Hesabım" menüsü (composables/useUyelik.ts), değilse "Giriş".
+const { uye, cikis } = useUyelik()
+const HESAP = [
+  { to: '/hesabim', label: 'Bilgilerim' },
+  { to: '/hesabim/degerlendirmeler', label: 'Ücretsiz Değerlendirmelerim' },
+  { to: '/hesabim/odemeler', label: 'Ödemelerim' },
+  { to: '/hesabim/sifre', label: 'Şifre Değiştir' }
+]
+const hesapAcik = ref(false)
+const cikisYap = async () => { hesapAcik.value = false; await cikis(); navigateTo('/') }
 const links = [
   { to: '/', label: 'Ana Sayfa' },
   { to: '/ekosistem', label: 'Ekosistem' },
@@ -9,7 +17,7 @@ const links = [
 ]
 const open = ref(false)
 const route = useRoute()
-watch(() => route.fullPath, () => { open.value = false })
+watch(() => route.fullPath, () => { open.value = false; hesapAcik.value = false })
 </script>
 
 <template>
@@ -25,7 +33,17 @@ watch(() => route.fullPath, () => { open.value = false })
 
       <nav class="nav" :class="{ open }" aria-label="Ana menü">
         <NuxtLink v-for="l in links" :key="l.to" :to="l.to" class="nav-link">{{ l.label }}</NuxtLink>
-        <NuxtLink to="/giris" class="btn ghost nav-btn"><ClientOnly>{{ uye ? 'Hesabım' : 'Giriş' }}<template #fallback>Giriş</template></ClientOnly></NuxtLink>
+        <ClientOnly>
+          <div v-if="uye" class="hesap" @keydown.esc="hesapAcik = false">
+            <button type="button" class="btn ghost nav-btn" :aria-expanded="hesapAcik" aria-haspopup="true" @click="hesapAcik = !hesapAcik">Hesabım</button>
+            <div v-show="hesapAcik" class="hesap-menu">
+              <NuxtLink v-for="h in HESAP" :key="h.to" :to="h.to">{{ h.label }}</NuxtLink>
+              <button type="button" class="cikis" @click="cikisYap">Çıkış Yap</button>
+            </div>
+          </div>
+          <NuxtLink v-else to="/giris" class="btn ghost nav-btn">Giriş</NuxtLink>
+          <template #fallback><NuxtLink to="/giris" class="btn ghost nav-btn">Giriş</NuxtLink></template>
+        </ClientOnly>
       </nav>
 
       <button class="menu-btn" type="button" :aria-expanded="open" aria-label="Menüyü aç / kapat" @click="open = !open">
@@ -51,6 +69,11 @@ watch(() => route.fullPath, () => { open.value = false })
 }
 .nav-link:hover, .nav-link.router-link-exact-active { border-bottom-color: var(--gold); }
 .nav-btn { min-height: 40px; padding: 0 18px; font-size: 16px; }
+.hesap { position: relative; }
+.hesap-menu { position: absolute; right: 0; top: calc(100% + 8px); min-width: 250px; display: flex; flex-direction: column; padding: 8px; background: #fff; border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 14px 30px -16px rgba(12, 40, 64, .45); }
+.hesap-menu a, .hesap-menu button { padding: 10px 12px; border: 0; border-radius: 6px; background: none; font: inherit; font-weight: 600; color: var(--navy); text-align: left; text-decoration: none; cursor: pointer; }
+.hesap-menu a:hover, .hesap-menu button:hover { background: var(--paper); }
+.hesap-menu .cikis { color: var(--red); }
 .menu-btn { display: none; width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--navy); cursor: pointer; place-items: center; }
 .menu-btn svg { width: 24px; height: 24px; }
 
@@ -63,7 +86,8 @@ watch(() => route.fullPath, () => { open.value = false })
   }
   .nav.open { display: flex; }
   .nav-link { padding: 14px 0; border-bottom: 1px solid var(--border); }
-  .nav-btn { margin-top: 14px; justify-content: center; }
+  .nav-btn { margin-top: 14px; justify-content: center; width: 100%; }
+  .hesap-menu { position: static; box-shadow: none; margin-top: 8px; }
   .brand-sub { display: none; }
 }
 </style>

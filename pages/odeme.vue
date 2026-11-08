@@ -8,7 +8,7 @@ useSeoMeta({ title: 'Ödeme', description: 'Detaylı analiz ödemesi.' })
 useHead({ script: [{ src: 'https://www.paytr.com/js/iframeResizer.min.js', defer: true }] })
 
 const route = useRoute()
-const { uye, yukle, fiyat, odemeBaslat } = useUyelik()
+const { uye, yukle, fiyat, odemeBaslat, sahteOdeme } = useUyelik()
 const { d } = useOnDegerlendirme()
 const urunKod = computed(() => (route.query.urun === 'site' ? 'site' : 'bina') as UrunKod)
 const urun = computed(() => URUNLER[urunKod.value])
@@ -21,6 +21,12 @@ const f = reactive({ ad: '', telefon: '', adres: '', onay: false })
 const hata = ref('')
 const gonderiliyor = ref(false)
 const paytrToken = ref('')
+// Sahte ödeme: kart alanları hiçbir yere gönderilmez; "Öde" ile sipariş backend'de ödendi yazılır.
+const kartKutusu = ref(false)
+const kart = reactive({ ad: '', no: '', skt: '', cvc: '' })
+const kartHazir = computed(() => kart.ad.trim().length >= 3 && kart.no.replace(/\D/g, '').length === 16 && /^\d{2}\/\d{2}$/.test(kart.skt) && /^\d{3}$/.test(kart.cvc))
+const kartNo = (e: Event) => { kart.no = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 16).replace(/(\d{4})(?=\d)/g, '$1 ') }
+const sktYaz = (e: Event) => { const v = (e.target as HTMLInputElement).value.replace(/\D/g, '').slice(0, 4); kart.skt = v.length > 2 ? `${v.slice(0, 2)}/${v.slice(2)}` : v }
 
 onMounted(async () => {
   await yukle()
@@ -35,10 +41,13 @@ const hazir = computed(() => !!tutar.value && !degerlendirmeYok.value && f.ad.tr
 const ode = async () => {
   if (!hazir.value || gonderiliyor.value) return
   hata.value = ''
+  if (sahteOdeme.value && !kartKutusu.value) { kartKutusu.value = true; return }
+  if (sahteOdeme.value && !kartHazir.value) return
   gonderiliyor.value = true
   try {
     const r = await odemeBaslat(urunKod.value, { name: f.ad.trim(), phone: f.telefon.trim(), address: f.adres.trim(), agreements: f.onay })
-    paytrToken.value = r.token
+    if (r.fake) return navigateTo('/odeme-basarili')
+    paytrToken.value = r.token!
     await nextTick()
     ;(window as any).iFrameResize?.({}, '#paytriframe')
   } catch (e) {
@@ -62,6 +71,28 @@ const ode = async () => {
           <h1 class="baslik">Kart Bilgileri</h1>
           <iframe id="paytriframe" :src="`https://www.paytr.com/odeme/guvenli/${paytrToken}`" title="PayTR güvenli ödeme" frameborder="0" scrolling="no" class="paytr" />
           <small class="guven"><AppIcon name="shield" /> Kart bilgileriniz PayTR güvenli ödeme altyapısında işlenir, FireTech'e ulaşmaz.</small>
+        </div>
+
+        <!-- Sahte ödeme kutusu (PayTR mağazası açılana kadar) -->
+        <div v-else-if="kartKutusu" class="izgara">
+          <form class="card kutu form" novalidate autocomplete="off" @submit.prevent="ode">
+            <h1 class="baslik">Kart Bilgileri</h1>
+            <label>Kart Üzerindeki İsim<input v-model="kart.ad" type="text" autocomplete="off"></label>
+            <label>Kart Numarası<input :value="kart.no" type="text" inputmode="numeric" autocomplete="off" placeholder="0000 0000 0000 0000" @input="kartNo"></label>
+            <div class="ikili">
+              <label>Son Kullanma<input :value="kart.skt" type="text" inputmode="numeric" autocomplete="off" placeholder="AA/YY" @input="sktYaz"></label>
+              <label>CVC<input v-model="kart.cvc" type="text" inputmode="numeric" maxlength="3" autocomplete="off" placeholder="000"></label>
+            </div>
+            <p v-if="hata" class="hata" role="alert">{{ hata }}</p>
+            <button type="submit" class="btn analiz-btn" :disabled="!kartHazir || gonderiliyor">{{ gonderiliyor ? 'Ödeniyor…' : `${tlYazi(tutar!.total)} TL Öde` }}</button>
+            <button type="button" class="btn ghost" :disabled="gonderiliyor" @click="kartKutusu = false">Geri</button>
+          </form>
+          <aside class="card kutu ozet">
+            <h3>Sipariş Özeti</h3>
+            <div class="urun"><strong>{{ urun.ad }}</strong><small>{{ urun.aciklama }}</small></div>
+            <div class="tutar"><span>Ödenecek tutar</span><strong>{{ tlYazi(tutar!.total) }} TL</strong></div>
+            <small class="guven"><AppIcon name="shield" /> Tek çekim</small>
+          </aside>
         </div>
 
         <div v-else class="izgara">
@@ -120,6 +151,7 @@ const ode = async () => {
 .onay a, .uyari a { color: var(--navy); font-weight: 600; }
 .uyari { padding: 12px 14px; border-radius: 8px; background: #fbeaea; color: var(--red); font-weight: 600; }
 .hata { color: var(--red); font-size: 14px; }
+.ikili { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .ozet h3 { text-transform: none; font-size: 20px; }
 .urun strong { display: block; font-family: var(--font-head); font-size: 18px; color: var(--navy); }
 .urun small { display: block; margin-top: 4px; color: var(--muted); }

@@ -40,6 +40,8 @@ export const useUyelik = () => {
   const degerlendirmeler = useState<KayitliDegerlendirme[]>('degerlendirmeler', () => [])
   const fiyatlar = useState<Record<UrunKod, Tutar | null> | null>('fiyatlar', () => null)
   const yuklendi = useState('uyelikYuklendi', () => false)
+  // PayTR mağazası yokken backend sahte ödeme açık: kart kutusu sitede, karttan çekim yok.
+  const sahteOdeme = useState('sahteOdeme', () => false)
   // Kurulumda alınır: await sonrasında Nuxt bağlamı kaybolur, useState çağrılamaz.
   const od = useOnDegerlendirme().d
 
@@ -59,7 +61,7 @@ export const useUyelik = () => {
     // Eski taslak üyeliğin (backend'siz) tarayıcıdaki kayıtları
     depo('local')?.removeItem('firetech_uye'); depo('local')?.removeItem('firetech_odemeler')
     yukleme = (async () => {
-      const fiyat = api<{ data: Record<UrunKod, Tutar | null> }>('/analysis-orders/price').then(r => { fiyatlar.value = r.data }).catch(() => {})
+      const fiyat = api<{ data: Record<UrunKod, Tutar | null>; fake_payment?: boolean }>('/analysis-orders/price').then(r => { fiyatlar.value = r.data; sahteOdeme.value = !!r.fake_payment }).catch(() => {})
       if (token.value) {
         try {
           const [me, s, d] = await Promise.all([
@@ -135,14 +137,14 @@ export const useUyelik = () => {
   // Sipariş açılır, PayTR iFrame jetonu döner. Bina analizi o anki ücretsiz değerlendirmeye bağlanır.
   const odemeBaslat = async (urun: UrunKod, f: { name: string; phone: string; address: string; agreements: boolean }) => {
     const bilgi = odemeBilgisi()
-    return api<{ token: string; merchant_oid: string; amounts: { net: string; vat: string; total: string } }>('/analysis-orders', {
+    return api<{ token?: string; fake?: boolean; merchant_oid: string; amounts: { net: string; vat: string; total: string } }>('/analysis-orders', {
       method: 'POST',
       body: { ...f, product: urun, pre_assessment_uuid: urun === 'bina' ? od.value.uuid ?? null : null, handoff: bilgi?.urun === urun ? bilgi.handoff : null }
     })
   }
 
   return {
-    uye, siparisler, degerlendirmeler, yuklendi, yukle, girisYap, uyeOl, cikis, bilgileriGuncelle, sifreDegistir,
+    uye, siparisler, degerlendirmeler, yuklendi, sahteOdeme, yukle, girisYap, uyeOl, cikis, bilgileriGuncelle, sifreDegistir,
     degerlendirmeKaydet, fiyat, odendi, analiziBaslat, odemeBilgisi, odemeBaslat
   }
 }

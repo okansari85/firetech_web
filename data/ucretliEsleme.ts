@@ -23,7 +23,7 @@ export const BIREBIR_DEGIL: Partial<Record<SinifKod, string[]>> = {
   ticaret: ['giyim', 'mobilya_elektronik', 'yedek_parca'], // 05-X-014 / 015 · 05-X-016 / 017 · 05-X-026 / 027
   endustri: ['e6', 'e7', 'e9', 'e11'], // CNC ve Torna 06-X-006 / 007 · Metal İşleme ve Makine İmalat 06-X-008 / 009 · İplik ve Dokuma 06-X-011 / 012 · Un ve Yem 06-X-014 / 015
   toplanma: ['konser_salonu', 'konferans_salonu', 'sergi'], // 07-X-009 / 010 · 07-X-011 / 012 · 07-X-014 / 015
-  depolama: ['hammadde', 'otopark'] // Hammadde ve Mamul 08-X-006 / 007 · Açık veya Kapalı Otopark 08-X-011 / 012
+  depolama: ['hammadde', 'otopark', 'lojistik'] // Hammadde ve Mamul 08-X-006 / 007 · Açık veya Kapalı Otopark 08-X-011 / 012 · Lojistik / Dağıtım 08-X-003 / 004
 }
 
 // Bir kullanımın katalog kimlikleri. Yüksek tehlikelide tesis, madde ve işlemler aynı tesisin boyutlarıdır (tesis önce: ana kayıt).

@@ -118,15 +118,19 @@ export const TUR_IKON: Partial<Record<SinifKod, Record<string, string>>> = {
   depolama: {
     depo: 'building-warehouse',
     antrepo: 'container',
-    lojistik: 'truck',
-    dagitim: 'truck-delivery',
+    lojistik: 'truck-delivery',
     eticaret: 'package',
     hammadde: 'packages',
     soguk_hava: 'snowflake',
     silo: 'wheat',
     arsiv: 'archive',
+    emanet: 'lock',
+    ahir: 'paw',
+    acik_saha: 'truck-loading',
     otopark: 'parking',
-    arac_muhafaza: 'car',
+    galeri: 'car-garage',
+    arac_muhafaza: 'bus',
+    taksi: 'car',
     tank: 'cylinder'
   },
   yuksek: {

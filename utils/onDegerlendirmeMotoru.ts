@@ -3,7 +3,8 @@
 // hesapla(): kullanımların ve yapının periyodunu hesaplar (cevaplar eksikken de anlık çalışır).
 import {
   SINIFLAR, PERIYOT, TOPLANMA_KISI_ESIGI, DEPO_ALAN_ESIGI, YUKSEKLIK, ALAN, ODA, TEHLIKE, EVET_HAYIR, KONUT_TURU, KONAKLAMA_TURU,
-  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, END_TURU, turGrubu, EK1, DEPO_TURU, DEPO_MADDE, YH_FAALIYET, YH_MOD, YH_EKRAN, YH_MADDE, YH_TESIS, YH_ISLEM, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
+  KURUMSAL_TURU, TICARET_TURU, YERLESIM, TOPLANMA_TURU, END_TURU, turGrubu, EK1, DEPO_TURU, DEPO_YER, DEPO_ILISKI, DEPO_FIILI, DEPO_FIILI_YOK,
+  DEPO_TEHLIKE, DEPO_DAYANAK, DEPO_R30, DEPO_KUCUK_KOMPARTIMAN, DEPO_MALZEME, DEPO_METIN, YH_FAALIYET, YH_MOD, YH_EKRAN, YH_MADDE, YH_TESIS, YH_ISLEM, YH_ILISKI, DIGER_KULLANIM_KARTLARI, ILISKI, YARDIMCI_OLABILIR, ILISKI_METNI, KARMA_YOK,
   DIGER_VAR_METNI, ODA_BELIRSIZ, PROJEDEN, METIN, ALAN_TANIM, KULLANIM_KISA_AD, SINIF_KISA_AD, ANALIZ_BASLIKLARI, BIRLIKTE_BASLIKLARI, ANALIZ_BASLIK_SINIRI,
   KONUT_ALT_TURU, SITE_KULLANICI, SITE_TURU, DIGER_YAZ, BURO_TURU, type SinifKod, type Secenek
 } from '~/data/onDegerlendirme'
@@ -19,7 +20,8 @@ export type Degerlendirme = { esas: SinifKod | null; c: Cevaplar; kayit?: boolea
 export type Eylem = { etiket: string; tip: 'esas' | 'sinif-sec' | 'sayfa' | 'diger'; sinif?: SinifKod; ek?: Cevaplar; urun?: 'bina' | 'site'; sira?: number }
 export type Soru = {
   id: string
-  tip: 'secim' | 'coklu' | 'gruplu' | 'sayi' | 'metin' | 'bilgi'
+  // stok: depolama yangın yükü ekranı (kompartıman alanı + malzeme satırları; cevap DepoStok)
+  tip: 'secim' | 'coklu' | 'gruplu' | 'sayi' | 'metin' | 'bilgi' | 'stok'
   grup: 'yapi' | 'diger'
   kisaAd: string
   baslik: string
@@ -43,7 +45,28 @@ export type Soru = {
   gruplar?: { id: string; baslik: string; secenekler: Secenek[]; coklu?: boolean }[]
   // Başlığın üstünde küçük etiket (ör. "Yapı Kullanım Sınıfı: Yüksek Tehlikeli Yerler")
   etiket?: string
+  // Metin girişinin yer tutucusu (yoksa "Örn. A Blok")
+  yerTutucu?: string
 }
+
+// ── Depolama yangın yükü (Oğuz'un V6 R1 paketi, processInventory) ───────────────
+// Σ (kg × MJ/kg) / kompartıman m². Birim kg değilse kg / birim gerekir. Boş satır sayılmaz; eksik satır enerjiye katılmaz.
+export type DepoStok = { alan?: number | null; ornek?: boolean; kalemler: { id: string; miktar?: number | null; birim: string; kgBirim?: number | null }[] }
+export function yanginYuku(v?: DepoStok) {
+  let enerji = 0, adet = 0
+  const eksik: string[] = []
+  for (const r of v?.kalemler ?? []) {
+    if (!r.id && typeof r.miktar !== 'number') continue // boş satır (boş girdi '' de olabilir)
+    adet++
+    const m = DEPO_MALZEME.find(x => x.id === r.id)
+    const kg = r.birim === 'kg' ? r.miktar : (r.miktar ?? NaN) * (r.kgBirim && r.kgBirim > 0 ? r.kgBirim : NaN)
+    if (!m || typeof r.miktar !== 'number' || r.miktar < 0 || typeof kg !== 'number' || !Number.isFinite(kg)) { eksik.push(m?.ad ?? 'Malzeme / miktar / kg/birim eksik'); continue }
+    enerji += kg * m.h
+  }
+  const alan = typeof v?.alan === 'number' && v.alan > 0 ? v.alan : null
+  return { enerji, adet, eksik, alan, q: alan ? enerji / alan : null, tam: adet > 0 && !eksik.length && !!alan }
+}
+const sayiTr = (n: number) => n.toLocaleString('tr-TR', { maximumFractionDigits: 2 })
 
 const ALAN_SINIFLARI: SinifKod[] = ['kurumsal', 'buro', 'ticaret', 'toplanma']
 const DUR = Symbol('dur')
@@ -51,7 +74,7 @@ const kisa = (s: SinifKod) => SINIFLAR[s].kisa
 const kucuk = (s: string) => s.toLocaleLowerCase('tr')
 const doluMu = (v: any) => v !== undefined && v !== null && !(Array.isArray(v) && v.length === 0)
 // Tek seçimde cevap seçeneklerden biri olmalı: seçenekler daralınca eski cevap yeniden sorulur.
-const cevapliMi = (q: Soru, v: any) => q.tip === 'bilgi' ? false : q.tip === 'metin' ? v !== undefined :
+const cevapliMi = (q: Soru, v: any) => q.tip === 'bilgi' ? false : q.tip === 'metin' ? v !== undefined : q.tip === 'stok' ? Array.isArray(v?.kalemler) :
   q.tip === 'gruplu' ? !!v && (q.gruplar ?? []).every(g => Array.isArray(v[g.id]) && v[g.id].length > 0) : doluMu(v) && (q.tip !== 'secim' || !q.secenekler || q.secenekler.some(o => o.deger === v))
 
 // Değerlendirilen yer birden fazla yapıdan oluşabiliyor mu (konutta site, kurumsalda kampüs / yerleşke; konaklamada tatil köyü,
@@ -158,16 +181,52 @@ export function akis(d: Degerlendirme): Soru[] {
     if (c[`${p}ek1C`] === 'hayir') need({ id: `${p}ek1B`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Ek-1/B kontrolü', baslik: 'Faaliyetiniz Orta Tehlike kullanım alanları kapsamında mı?', liste: EK1.B, secenekler: EVET_HAYIR })
     if (c[`${p}ek1B`] === 'hayir') need({ id: `${p}ek1A`, tip: 'secim', grup, sinif: 'endustri', kisaAd: 'Ek-1/A kontrolü', baslik: 'Tesisiniz Düşük Tehlike şartlarının hepsini sağlıyor mu?', liste: EK1.A, secenekler: EVET_HAYIR })
   }
-  // Depolama (ana kullanım p = '', diğer kullanımlar p = 'd_', 'd2_' …): tür → tehlikeli madde → tehlike sınıfı. Ana kullanımda esas olarak tehlikeli
-  // madde depolanıyorsa Yüksek Tehlikeli Yer'e yönlendirilir; bölümde ise yüksek tehlikeli bölüm sayılır (3 yıl), tehlike sınıfı sorulmaz.
-  const depolamaSorulari = (p: string, grup: Soru['grup']) => {
-    need({ id: `${p}depoTuru`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Depolama türü', baslik: p ? 'Depolama bölümünde ne depolanıyor veya muhafaza ediliyor?' : 'Ne depolanıyor veya muhafaza ediliyor?', secenekler: [...DEPO_TURU, DIGER_YAZ], digerYaz: true })
-    need({ id: `${p}depoMadde`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Tehlikeli madde', baslik: 'Depolanan ürünler arasında LPG / parlayıcı gaz, patlayıcı madde, akaryakıt veya yanıcı sıvı var mı?', secenekler: DEPO_MADDE })
-    if (c[`${p}depoMadde`] === 'esas') {
-      if (!p) need({ id: 'yonlendirDepo', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik: 'Yüksek Tehlikeli Yer olarak değerlendirilmelidir', aciklama: 'Esas olarak parlayıcı, patlayıcı madde veya akaryakıt depolanan yerler BYKHY Madde 17 kapsamındadır.', eylemler: [{ etiket: 'Yüksek Tehlikeli Yerler olarak devam et', tip: 'esas', sinif: 'yuksek', ek: { yhMod: 'faaliyet', yhIliski: 'esas' } }] })
-      return
+  // Depolama — Oğuz'un V6 R1 paketi (ana kullanım p = '', diğer kullanımlar p = 'd_', 'd2_' …): tür → (esasta) yapı ilişkisi → yalnız
+  // gerekiyorsa fiilî kullanım → Ek-1 / Madde 17 karşılığı varsa sınıf sorulmaz → değilse sınıf biliniyor mu → bilinmiyorsa stok ile
+  // yangın yükü → yalnız ≤126 m² kompartımanda 30 dakika. Hesaptan sonra düşük yük / yanabilirlik yeniden sorulmaz (V6 R1 düzeltmesi).
+  // Dönüş true: depo bu yapı için kapsam dışı / doğrulanmalı (açık saha, ilişki belirsiz); başka kullanım adımına geçilmez.
+  const depolamaSorulari = (p: string, grup: Soru['grup']): boolean => {
+    need({ id: `${p}depoTuru`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Depolama türü', baslik: p ? 'Depolama bölümünde ne depolanıyor veya muhafaza ediliyor?' : DEPO_METIN.turBaslik, secenekler: [...DEPO_TURU, DIGER_YAZ], digerYaz: true })
+    const yonlendir = (baslik: string, aciklama: string, eylem: Eylem) => need({ id: 'yonlendirDepo', tip: 'bilgi', grup: 'yapi', kisaAd: '', baslik, aciklama, eylemler: [eylem] })
+    const esasSec: Eylem = { etiket: 'Esas kullanımı yeniden seç', tip: 'sinif-sec' }
+    if (!p) {
+      need({ id: 'depoYer', tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Yapı ilişkisi', baslik: DEPO_METIN.yerBaslik, aciklama: DEPO_METIN.yerAciklama, secenekler: DEPO_YER })
+      const yer = c.depoYer
+      if (yer === 'satis') yonlendir('Ticaret kullanımına dön', DEPO_METIN.satis, { etiket: `${SINIFLAR.ticaret.ad} olarak devam et`, tip: 'esas', sinif: 'ticaret' })
+      if (yer === 'fabrika') yonlendir('Endüstriyel kullanıma dön', DEPO_METIN.fabrika, { etiket: `${SINIFLAR.endustri.ad} olarak devam et`, tip: 'esas', sinif: 'endustri' })
+      if (yer === 'acik') return true
+      if (yer === 'icinde') {
+        need({ id: 'depoIcAlan', tip: 'sayi', grup, sinif: 'depolama', birim: 'm²', bilinmiyorDugmesi: true, kisaAd: 'Depo bölümü alanı', baslik: DEPO_METIN.icAlanBaslik, aciklama: DEPO_METIN.icAlanAciklama })
+        if (c.depoIcAlan === 'bilmiyorum') return true
+        if (c.depoIcAlan < DEPO_ALAN_ESIGI) yonlendir('Esas binaya dön (<50 m²)', `${DEPO_METIN.kucukDepo} Lütfen binanın esas kullanım sınıfını seçin.`, esasSec)
+        need({ id: 'depoIliski', tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Esas binayla ilişki', baslik: DEPO_METIN.iliskiBaslik, aciklama: DEPO_METIN.iliskiAciklama, secenekler: DEPO_ILISKI })
+        if (c.depoIliski === 'yardimci') yonlendir('Esas bina kullanımına dön', `${DEPO_METIN.yardimciDepo} Lütfen binanın esas kullanım sınıfını seçin.`, esasSec)
+        if (c.depoIliski === 'bilmiyorum') return true
+      }
     }
-    need({ id: `${p}depoTehlike`, tip: 'secim', grup, sinif: 'depolama', kisaAd: p ? 'Depo tehlike sınıfı' : 'Tehlike sınıfı', baslik: p ? 'Depolama bölümünün tehlike sınıfını biliyor musunuz?' : 'Tesisinizin tehlike sınıfını biliyor musunuz?', aciklama: 'Onaylı yangın projenizde yazar.', secenekler: TEHLIKE })
+    const fiili = DEPO_FIILI[c[`${p}depoTuru`]]
+    if (fiili) {
+      const tur = DEPO_TURU.find(o => o.deger === c[`${p}depoTuru`])!
+      need({ id: `${p}depoFiili`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Fiilî kullanım', baslik: DEPO_METIN.fiiliBaslik, aciklama: `${tur.etiket} seçildi. ${DEPO_METIN.fiiliAciklama}`,
+        secenekler: [...fiili.map(f => ({ deger: f.deger, etiket: f.etiket, aciklama: f.sinif ? `${PERIYOT.tehlike[f.sinif]} yıl karşılığı · ${f.dayanak}` : f.m17 ? `Mevcut 9. gruba aktar · ${f.dayanak}` : f.dayanak })), DEPO_FIILI_YOK] })
+      const f = fiili.find(x => x.deger === c[`${p}depoFiili`])
+      // Madde 17 esas faaliyeti: mevcut 9. ana sınıf akışı; depo ikinci kez sayılmaz (diğer kullanımda yüksek tehlikeli bölüm, 3 yıl).
+      if (f?.m17) {
+        if (!p) yonlendir('Yüksek Tehlikeli Yer olarak değerlendirilmelidir', `${f.dayanak}: depolama ve 9. sınıf olarak çift sayılmaz.`, { etiket: 'Yüksek Tehlikeli Yerler olarak devam et', tip: 'esas', sinif: 'yuksek', ek: { yhMod: 'faaliyet', yhIliski: 'esas' } })
+        return false
+      }
+      if (f?.sinif) return false
+    }
+    need({ id: `${p}depoTehlike`, tip: 'secim', grup, sinif: 'depolama', kisaAd: p ? 'Depo tehlike sınıfı' : 'Tehlike sınıfı', baslik: DEPO_METIN.tehlikeBaslik, aciklama: DEPO_METIN.tehlikeAciklama, secenekler: DEPO_TEHLIKE })
+    if (c[`${p}depoTehlike`] !== 'bilmiyorum') {
+      need({ id: `${p}depoDayanak`, tip: 'secim', grup, sinif: 'depolama', kisaAd: 'Sınıfın dayanağı', baslik: DEPO_METIN.dayanakBaslik, secenekler: DEPO_DAYANAK })
+      if (c[`${p}depoDayanak`] === 'belge') need({ id: `${p}depoBelge`, tip: 'metin', grup, sinif: 'depolama', kisaAd: 'Belge', baslik: DEPO_METIN.belgeBaslik, aciklama: DEPO_METIN.belgeAciklama, yerTutucu: DEPO_METIN.belgeOrnek })
+      return false
+    }
+    need({ id: `${p}depoStok`, tip: 'stok', grup, sinif: 'depolama', kisaAd: 'Yangın yükü', baslik: DEPO_METIN.stokBaslik, aciklama: DEPO_METIN.stokAciklama })
+    const alan = yanginYuku(c[`${p}depoStok`]).alan
+    if (alan !== null && alan <= DEPO_KUCUK_KOMPARTIMAN) need({ id: `${p}depoR30`, tip: 'secim', grup, sinif: 'depolama', kisaAd: '30 dakika dayanım', baslik: DEPO_METIN.r30Baslik, aciklama: DEPO_METIN.r30Aciklama, secenekler: DEPO_R30 })
+    return false
   }
 
   try {
@@ -203,7 +262,7 @@ export function akis(d: Degerlendirme): Soru[] {
     } else if (e === 'endustri') {
       endustriSorulari('', 'yapi')
     } else if (e === 'depolama') {
-      depolamaSorulari('', 'yapi')
+      if (depolamaSorulari('', 'yapi')) return L
     } else if (e === 'yuksek') {
       // Tek ekranda madde grupları, tesis / faaliyet türü ve işlemler (kullanıcı 18 Ekim 2026). İşlemler (üretim, depolama, dolum,
       // boşaltım, satış…) BYKHY Md. 17 tanımındaki faaliyetlerdir; ayrıca "nasıl bulunuyor" sorulmaz.
@@ -293,6 +352,7 @@ export function cevapEtiketi(q: Soru, v: any, c?: Cevaplar): string {
   if (q.tip === 'gruplu') return (q.gruplar ?? []).map(g => ((v?.[g.id] ?? []) as string[]).map(x => g.secenekler.find(s => s.deger === x)?.etiket ?? x).join(', ')).filter(Boolean).join(' · ')
   if (q.tip === 'sayi') return v === 'bilmiyorum' ? 'Bilmiyorum' : `${Number(v).toLocaleString('tr-TR')} ${q.birim ?? ''}`.trim()
   if (q.tip === 'metin') return v ? String(v) : 'Belirtilmedi'
+  if (q.tip === 'stok') { const y = yanginYuku(v); return y.q !== null ? `${sayiTr(y.q)} MJ/m² · ${y.adet} kalem` : `Hesaplanmadı · ${y.adet} kalem` }
   return q.secenekler?.find(s => s.deger === v)?.etiket ?? String(v)
 }
 
@@ -358,21 +418,52 @@ function endustriSonucu(c: Cevaplar, p: string): SinifCikti {
   return EKSIK
 }
 
-// Depolama: tehlike sınıfı (bilinmiyorsa otopark → Ek-1/B orta, otobüs / kamyon / vagon deposu → Ek-1/C yüksek). Tehlikeli madde kısmen
-// varsa ya da bilinmiyorsa sınıf doğrulanmalı; yalnız yüksek tehlike (3 yıl, en kısa süre) kesin kalır. Bölümde esas olarak tehlikeli
-// madde depolanıyorsa yüksek tehlikeli bölüm: 3 yıl (EK-1 sınır olmaksızın; kullanıcı kararı 11 Ekim).
+// Depolama — Oğuz'un V6 R1 karar motoru (evaluate). Kesin süre yalnız doğrudan Ek-1 karşılığında ve belge referanslı sınıfta; beyan ve
+// yangın yükü hesabı süre vermez (MJ/m² için mevzuatta sınıf eşiği yok). Belge referansı içerik doğrulaması değildir.
+// Diğer kullanımda Madde 17 esas faaliyeti: yüksek tehlikeli bölüm, 3 yıl (EK-1 sınır olmaksızın; kullanıcı kararı 11 Ekim).
 function depolamaSonucu(c: Cevaplar, p: string): SinifCikti {
-  const madde = c[`${p}depoMadde`]
-  if (madde === undefined) return EKSIK
-  if (madde === 'esas') return p
-    ? { periyot: PERIYOT.yuksekTehlike, durum: 'gecerli', belirleyici: 'Esas olarak parlayıcı / patlayıcı madde veya akaryakıt depolanan bölüm: yüksek tehlikeli yer, sınır olmaksızın (BYKHY Md. 17)' }
-    : EKSIK
-  const tehlike = c[`${p}depoTehlike`], tur = turGrubu(DEPO_TURU, c[`${p}depoTuru`])
-  const r: SinifCikti = tehlike === 'bilmiyorum' && tur === 'otopark' ? tehlikeyeGore('orta', 'Ek-1/B “otoparklar”')
-    : soruyla(tehlikeyeGore(tehlike), `${p}depoTehlike`)
-  if (r.durum !== 'gecerli' || r.periyot === PERIYOT.tehlike.yuksek || !['kismen', 'bilmiyorum'].includes(madde)) return r
-  const neden = madde === 'kismen' ? 'tehlikeli madde bulunduğu için' : 'tehlikeli madde bulunup bulunmadığı bilinmediği için'
-  return { periyot: null, durum: 'inceleme', belirleyici: `${r.belirleyici}; ${neden} sınıf doğrulanmalı`, soru: `${p}depoMadde` }
+  const tur = c[`${p}depoTuru`]
+  if (tur === undefined) return EKSIK
+  const inceleme = (belirleyici: string, soru: string): SinifCikti => ({ periyot: null, durum: 'inceleme', belirleyici, soru })
+  if (!p) {
+    // Esas kullanım: yapı ilişkisi (yönlendirmeler — satış, fabrika, <50 m², yardımcı alan — sonuç değil, başka sınıfa geçiş)
+    const yer = c.depoYer
+    if (yer === undefined || yer === 'satis' || yer === 'fabrika') return EKSIK
+    if (yer === 'acik') return inceleme(DEPO_METIN.acikSaha, 'depoYer')
+    if (yer === 'icinde') {
+      if (c.depoIcAlan === 'bilmiyorum') return inceleme(DEPO_METIN.icAlanYok, 'depoIcAlan')
+      if (typeof c.depoIcAlan !== 'number' || c.depoIcAlan < DEPO_ALAN_ESIGI || c.depoIliski === undefined || c.depoIliski === 'yardimci') return EKSIK
+      if (c.depoIliski === 'bilmiyorum') return inceleme(DEPO_METIN.iliskiYok, 'depoIliski')
+    }
+  }
+  const f = DEPO_FIILI[tur] && DEPO_FIILI[tur].find(x => x.deger === c[`${p}depoFiili`])
+  if (DEPO_FIILI[tur] && c[`${p}depoFiili`] === undefined) return EKSIK
+  if (f?.m17) return p ? { periyot: PERIYOT.yuksekTehlike, durum: 'gecerli', belirleyici: `${f.etiket}: yüksek tehlikeli bölüm, sınır olmaksızın (${f.dayanak})` } : EKSIK
+  if (f?.sinif) return { periyot: PERIYOT.tehlike[f.sinif]!, durum: 'gecerli', belirleyici: `${f.etiket}: ${f.dayanak}` }
+  const t = c[`${p}depoTehlike`]
+  if (t === undefined) return EKSIK
+  if (t !== 'bilmiyorum') {
+    const ad = DEPO_TEHLIKE.find(o => o.deger === t)!.etiket
+    const dayanak = c[`${p}depoDayanak`]
+    if (dayanak === undefined || (dayanak === 'belge' && c[`${p}depoBelge`] === undefined)) return EKSIK
+    const belge = dayanak === 'belge' ? String(c[`${p}depoBelge`] ?? '').trim() : ''
+    if (belge) return { periyot: PERIYOT.tehlike[t]!, durum: 'gecerli', belirleyici: `Tehlike sınıfı: ${kucuk(ad)} (belge: ${belge}; belge içeriği doğrulanmadı)` }
+    return inceleme(`Beyana dayalı – ${kucuk(ad)}: ${DEPO_METIN.beyan}`, `${p}depoDayanak`)
+  }
+  const stok = c[`${p}depoStok`]
+  if (stok === undefined) return EKSIK
+  const y = yanginYuku(stok)
+  const yuk = y.q !== null ? ` Yangın yükü: ${sayiTr(y.q)} MJ/m²${y.tam ? '' : ' (kısmi / eksik)'}${stok.ornek ? ' — varsayımsal örnek' : ''}.` : ''
+  const r30 = c[`${p}depoR30`]
+  if (y.alan !== null && (y.alan > DEPO_KUCUK_KOMPARTIMAN || r30 === 'hayir')) {
+    const neden = y.alan > DEPO_KUCUK_KOMPARTIMAN ? `${DEPO_METIN.buyukKompartiman} ${y.tam ? DEPO_METIN.yukVar : DEPO_METIN.yukYok} ${DEPO_METIN.ortaYuksek}` : DEPO_METIN.r30Yok
+    return inceleme(`Orta/yüksek ayrımı açık (3 veya 4 yıl): ${neden}${yuk}`, `${p}depoStok`)
+  }
+  if (y.alan === null) return inceleme(`Kompartıman alanı eksik: ${DEPO_METIN.alanYok}${yuk}`, `${p}depoStok`)
+  if (r30 === undefined) return EKSIK
+  if (r30 === 'bilmiyorum') return inceleme(`30 dakika dayanım bilgisi eksik: ${DEPO_METIN.r30Bilinmiyor}${yuk}`, `${p}depoR30`)
+  if (!y.tam) return inceleme(`Yangın yükü verisi eksik: ${DEPO_METIN.yukEksik}${yuk}`, `${p}depoStok`)
+  return inceleme(`Düşük tehlike koşulları kısmi: ${DEPO_METIN.dusukKismi}${yuk}`, `${p}depoStok`)
 }
 
 function sinifSonucu(s: SinifKod, c: Cevaplar, esas: boolean, p = esas ? '' : 'd_'): SinifCikti {

@@ -216,9 +216,12 @@ const digerKullanim = computed(() => {
 
     <!-- Metin -->
     <form v-else-if="soru.tip === 'metin'" class="giris" @submit.prevent="emit('cevap', metin.trim())">
-      <input v-model="metin" type="text" class="metin" placeholder="Örn. A Blok" :aria-label="soru.kisaAd">
+      <input v-model="metin" type="text" class="metin" :placeholder="soru.yerTutucu ?? 'Örn. A Blok'" :aria-label="soru.kisaAd">
       <button type="submit" class="btn gold-btn">{{ metin.trim() ? 'Devam Et' : 'Atla' }} <AppIcon name="arrow" class="ico" /></button>
     </form>
+
+    <!-- Depolama: yangın yükü (kompartıman alanı + stok satırları) -->
+    <KontrolDepoStok v-else-if="soru.tip === 'stok'" :key="soru.id" :deger="deger" @cevap="v => emit('cevap', v)" />
 
     <!-- Bilgi / yönlendirme -->
     <div v-else-if="soru.tip === 'bilgi'" class="alt">

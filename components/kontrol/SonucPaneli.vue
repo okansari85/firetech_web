@@ -18,7 +18,7 @@ const belirsizler = computed(() => props.sonuc.kullanimlar.filter(k => ['belirle
 // Belirlenemeyen periyot için doğrudan ilgili soruya dönen düğmeler (spesifikasyonlardaki "Yapı İnşaat Alanını Düzenle" vb.).
 const DUZENLE_ETIKETI: [RegExp, string][] = [
   [/^alan/, 'Yapı İnşaat Alanını Düzenle'], [/^oda$/, 'Oda Sayısını Düzenle'], [/^yukseklik$/, 'Yapı Yüksekliğini Düzenle'],
-  [/Tehlike$/, 'Tehlike Sınıfını Düzenle'], [/depoMadde$/, 'Tehlikeli Madde Bilgisini Düzenle'], [/toplanmaTuru$/, 'Toplanma Türünü Düzenle'],
+  [/Tehlike$/, 'Tehlike Sınıfını Düzenle'], [/toplanmaTuru$/, 'Toplanma Türünü Düzenle'],
   [/toplanma(Alani|Oturma|Ayakta)$/, 'Toplanma Alanını Düzenle'], [/yh(Iliski|Mod)$/, 'Faaliyet Bilgisini Düzenle'], [/^diger_\d+$/, 'Diğer Kullanımları Düzenle']
 ]
 const duzenleDugmeleri = computed(() => {

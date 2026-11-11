@@ -126,12 +126,12 @@ gercek('Fabrika + aynı yapıda Genel Büro (3 yıl, endüstri belirler)', { esa
   assert.equal(x.topics[4].title, 'İlgili kullanım: Genel büro'); assert.equal(x.topics[5].title, 'Ortak bina sistemleri')
   assert(!x.periodCard.driver.includes('5'), 'büronun 5 yılı periyot kartına girmez')
 })
-gercek('Lojistik deposu + konut: süreyi yan kullanım (konut) belirler, başlık depoda kalır', { esas: 'depolama', c: { depoTuru: 'lojistik', depoMadde: 'yok', depoTehlike: 'dusuk', digerVar: 'evet', diger_1: 'konut', d_konutTuru: 'apartman', d_konutAltTuru: 'a3', digerDaha_1: 'hayir', yukseklik: 'ge_51_50' } }, (g, x) => {
-  assert.equal(g.primaryId, '08-X-003'); assert.deepEqual(g.secondaryIds, ['01-X-015'])
+gercek('Lojistik deposu + konut: süreyi yan kullanım (konut) belirler, başlık depoda kalır (Lojistik / Dağıtım birebir değil → genel depolama kaydı)', { esas: 'depolama', c: { depoTuru: 'lojistik', depoYer: 'bagimsiz', depoTehlike: 'dusuk', depoDayanak: 'belge', depoBelge: 'YP-2026/041', digerVar: 'evet', diger_1: 'konut', d_konutTuru: 'apartman', d_konutAltTuru: 'a3', digerDaha_1: 'hayir', yukseklik: 'ge_51_50' } }, (g, x) => {
+  assert.equal(g.primaryId, '08-X-016', 'Lojistik / Dağıtım Deposu birebir değil (08-X-003 / 004) → genel kayıt'); assert.deepEqual(g.secondaryIds, ['01-X-015'])
   assert.equal(g.building.relation, 'same_building', 'tek seçenek kaldığı için motor ilişkiyi "aynı yapı" kabul eder (soru sorulmaz)')
   assert.equal(x.periodCard.years, 4); assert.equal(x.periodCard.determiningUseId, '01-X-015')
   assert.equal(x.periodCard.driver, 'Konut: Yapı yüksekliği: 51,50 metre ve üzeri')
-  assert(x.headline.startsWith('Lojistik deposu')); assert.equal(x.topics[0].sourceIds[0], '08-X-003')
+  assert(x.headline.startsWith('Diğer depolama tesisi'), x.headline); assert.equal(x.topics[0].sourceIds[0], '08-X-016')
 })
 gercek('Otel + bağımsız restoran + yardımcı otopark (iki belirleyici, ikisi de 4 yıl)', { esas: 'konaklama', c: { konaklamaTuru: 'otel', oda: 'gt_25', digerVar: 'evet', diger_1: 'toplanma', d_toplanmaTuru: 'restoran', iliski_toplanma: 'ayni', d_toplanmaAlani: 120, digerDaha_1: 'evet', diger_2: 'depolama', d2_depoTuru: 'otopark', iliski2_depolama: 'yardimci', digerDaha_2: 'hayir', alan: 'gt_1000' } }, (g, x, sonuc) => {
   assert.equal(g.primaryId, '02-X-001'); assert.deepEqual(g.secondaryIds, ['07-X-001', '08-X-016'], 'Açık veya Kapalı Otopark birebir değil → genel kayıt')

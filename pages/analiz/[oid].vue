@@ -55,6 +55,8 @@ onMounted(async () => {
 const NOT_METNI = (n: string) => (M.notlar as Record<string, string>)[n] ?? n
 const maddeBaslik = (m: Ek6Madde) => (m.kind === 'sistem' ? `${M.zorunluSistem}: ${m.name}` : m.question)
 // Başlık niteliğindeki kısa EK-6 metni ("Taşınabilir Yangın Söndürücü.") soruyu tekrar eder; gösterilmez.
+// PDF: tarayıcının yazdırma penceresi (ekranla aynı içerik; üst / alt menü ve düğmeler yazdırılmaz).
+const yazdir = () => window.print()
 const hukumMetni = (m: Ek6Madde) => ((m.criterion ?? '').split(/\s+/).length >= 6 ? m.criterion : '')
 </script>
 
@@ -107,7 +109,12 @@ const hukumMetni = (m: Ek6Madde) => ((m.criterion ?? '').split(/\s+/).length >= 
         </template>
 
         <template v-if="sonuc">
+          <div class="pdf-satir yazdirma-yok">
+            <button type="button" class="btn ghost" @click="yazdir">{{ M.pdf }}</button>
+            <small class="muted">{{ M.pdfIpucu }}</small>
+          </div>
           <div class="card hazirlik">
+            <p v-if="sonuc.generated_at" class="muted kucuk">{{ M.tarih }}: {{ new Date(sonuc.generated_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) }}</p>
             <p class="etiket">{{ M.hazirlikBaslik }}</p>
             <p v-if="sonuc.readiness !== null" class="yuzde">%{{ sonuc.readiness }}</p>
             <p v-else class="muted">{{ M.hazirlikYok }}</p>
@@ -152,7 +159,7 @@ const hukumMetni = (m: Ek6Madde) => ((m.criterion ?? '').split(/\s+/).length >= 
             <ul class="card belgeler"><li v-for="b in sonuc.documents" :key="b">{{ b }}</li></ul>
           </section>
 
-          <details v-if="sonuc.ready.length" class="blok">
+          <details v-if="sonuc.ready.length" class="blok" open>
             <summary>{{ M.hazirMaddeler }} ({{ sonuc.ready.length }})</summary>
             <ul class="maddeler"><li v-for="m in sonuc.ready" :key="m.code" class="madde"><p class="metin">{{ maddeBaslik(m) }}</p></li></ul>
           </details>
@@ -160,7 +167,7 @@ const hukumMetni = (m: Ek6Madde) => ((m.criterion ?? '').split(/\s+/).length >= 
           <WarningBox class="blok">{{ M.uyari }}</WarningBox>
         </template>
 
-        <NuxtLink to="/hesabim/odemeler" class="btn ghost geri">{{ M.geri }}</NuxtLink>
+        <NuxtLink to="/hesabim/odemeler" class="btn ghost geri yazdirma-yok">{{ M.geri }}</NuxtLink>
       </ClientOnly>
     </div>
   </section>
@@ -204,4 +211,15 @@ const hukumMetni = (m: Ek6Madde) => ((m.criterion ?? '').split(/\s+/).length >= 
 details summary { cursor: pointer; font-family: var(--font-head); font-size: 20px; color: var(--navy); }
 details .maddeler { margin-top: 12px; }
 .geri { margin-top: 32px; }
+.pdf-satir { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin-bottom: 16px; }
+@media print {
+  .yazdirma-yok { display: none !important; }
+  .sayfa { padding-top: 0; }
+  .card, .madde { break-inside: avoid; }
+}
+</style>
+<style>
+@media print {
+  header, footer { display: none !important; }
+}
 </style>

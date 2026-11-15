@@ -29,7 +29,10 @@ export const EK6_METIN = {
     eksikBilgi: 'Zorunluluk, verilmeyen bilgiye bağlı.'
   },
   uyari: 'Bu çalışma resmî periyodik kontrol raporu, itfaiye uygunluk raporu veya yetkili idare görüşü değildir; kullanıcı tarafından verilen bilgiler üzerinden yangın güvenliği hazırlık değerlendirmesi sunar.',
-  geri: 'Ödemelerim'
+  geri: 'Ödemelerim',
+  pdf: 'PDF Olarak Kaydet',
+  pdfIpucu: 'Açılan pencerede hedef olarak “PDF olarak kaydet”i seçin.',
+  tarih: 'Rapor tarihi'
 }
 
 export const EK6_CEVAP: Record<string, string> = { evet: 'Evet', hayir: 'Hayır', bilmiyorum: 'Bilmiyorum', uygulanmiyor: 'Uygulanmıyor' }
@@ -50,6 +53,6 @@ export type Ek6Sonuc = {
   readiness: number | null; counts: Record<'evet' | 'hayir' | 'bilmiyorum' | 'uygulanmiyor', number>
   action_items: Ek6Madde[]; unknowns: Ek6Madde[]; not_applicable: Ek6Madde[]; ready: Ek6Madde[]
   requirement_verification: { code: string; name: string; present: boolean | null; missing_inputs: string[]; notes: string[] }[]
-  documents: string[]; is_test: boolean; contains_unapproved: boolean
+  documents: string[]; is_test: boolean; contains_unapproved: boolean; generated_at?: string
 }
 export type Ek6Durum = { uuid: string; status: 'devam' | 'tamam'; step: 'yapi' | 'sistemler' | 'kurallar' | 'tamam'; questions: Ek6Soru[]; is_test?: boolean; result?: Ek6Sonuc }

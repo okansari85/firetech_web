@@ -6,13 +6,14 @@ useSeoMeta({ title: 'Ödeme Alındı', robots: 'noindex' })
 const { yukle, siparisler, odemeBilgisi } = useUyelik()
 const durum = ref<'bekliyor' | 'onaylandi' | 'isleniyor'>('bekliyor')
 const urun = ref(odemeBilgisi()?.urun ?? 'bina')
+const oid = ref('')
 
 onMounted(async () => {
   // PayTR dönüşü ödeme kutusunun (iframe) içinde açılırsa sayfanın tamamına taşınır.
   if (window.top && window.top !== window.self) { window.top.location.href = window.location.href; return }
   for (let i = 0; i < 4; i++) {
     await yukle(true)
-    if (siparisler.value[0]?.status === 'paid') { durum.value = 'onaylandi'; urun.value = siparisler.value[0].product; return }
+    if (siparisler.value[0]?.status === 'paid') { durum.value = 'onaylandi'; urun.value = siparisler.value[0].product; oid.value = siparisler.value[0].merchant_oid; return }
     await new Promise(r => setTimeout(r, 2000))
   }
   durum.value = 'isleniyor'
@@ -29,6 +30,7 @@ onMounted(async () => {
           <p v-if="durum === 'isleniyor'" class="muted">Onay birkaç dakika içinde Hesabım › Ödemelerim ekranında görünecek.</p>
           <div class="dugmeler">
             <NuxtLink v-if="urun === 'site' && durum === 'onaylandi'" to="/ucretsiz-kontrol/site-yonetimi" class="btn analiz-btn">Site Yönetimine Devam Et <AppIcon name="arrow" class="ico" /></NuxtLink>
+            <NuxtLink v-if="urun === 'bina' && durum === 'onaylandi' && oid" :to="`/analiz/${oid}`" class="btn analiz-btn">Detaylı Analize Başla <AppIcon name="arrow" class="ico" /></NuxtLink>
             <NuxtLink to="/hesabim/odemeler" class="btn ghost">Ödemelerim</NuxtLink>
           </div>
         </div>

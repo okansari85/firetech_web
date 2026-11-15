@@ -2,6 +2,7 @@
 // Giriş anahtarı (token) localStorage'da; ödeme bilgisi (ürün, ücretli giriş sayfasının handoff'u) sessionStorage'da.
 import type { UrunKod } from '~/data/urunler'
 import type { Degerlendirme, Sonuc } from '~/utils/onDegerlendirmeMotoru'
+import type { Ek6Durum } from '~/data/ek6Analiz'
 
 export type Uye = { id: number; name: string; email: string; phone: string | null; created_at: string }
 export type Tutar = { net: number; vat: number; total: number } // kuruş
@@ -143,8 +144,14 @@ export const useUyelik = () => {
     })
   }
 
+  // Ücretli EK-6 analizi (ödenmiş bina siparişi): başlat (varsa mevcut oturum), cevapla, tamamla.
+  const ek6Baslat = (oid: string) => api<{ data: Ek6Durum }>(`/analysis-orders/${encodeURIComponent(oid)}/ek6`, { method: 'POST' }).then(r => r.data)
+  const ek6Cevapla = (uuid: string, body: { inputs?: Record<string, unknown>; systems?: Record<string, boolean | null>; rules?: Record<string, string> }) =>
+    api<{ data: Ek6Durum }>(`/ek6-analyses/${uuid}`, { method: 'PUT', body }).then(r => r.data)
+  const ek6Tamamla = (uuid: string) => api<{ data: Ek6Durum }>(`/ek6-analyses/${uuid}/complete`, { method: 'POST' }).then(r => r.data)
+
   return {
     uye, siparisler, degerlendirmeler, yuklendi, sahteOdeme, yukle, girisYap, uyeOl, cikis, bilgileriGuncelle, sifreDegistir,
-    degerlendirmeKaydet, fiyat, odendi, analiziBaslat, odemeBilgisi, odemeBaslat
+    degerlendirmeKaydet, fiyat, odendi, analiziBaslat, odemeBilgisi, odemeBaslat, ek6Baslat, ek6Cevapla, ek6Tamamla
   }
 }

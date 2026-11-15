@@ -28,6 +28,7 @@ const tl = (s: string) => Number(s).toLocaleString('tr-TR', { minimumFractionDig
           <div class="toplam"><dt>Toplam</dt><dd>{{ tl(s.total_amount) }} TL</dd></div>
         </dl>
         <NuxtLink v-if="s.product === 'site' && s.status === 'paid'" to="/ucretsiz-kontrol/site-yonetimi" class="btn ghost">Site Yönetimine Git</NuxtLink>
+        <NuxtLink v-if="s.product === 'bina' && s.status === 'paid'" :to="`/analiz/${s.merchant_oid}`" class="btn ghost">Detaylı Analize Git</NuxtLink>
       </li>
     </ul>
   </HesabimCerceve>

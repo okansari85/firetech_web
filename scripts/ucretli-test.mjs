@@ -126,7 +126,7 @@ gercek('Fabrika + aynı yapıda Genel Büro (3 yıl, endüstri belirler)', { esa
   assert.equal(x.topics[4].title, 'İlgili kullanım: Genel büro'); assert.equal(x.topics[5].title, 'Ortak bina sistemleri')
   assert(!x.periodCard.driver.includes('5'), 'büronun 5 yılı periyot kartına girmez')
 })
-gercek('Lojistik deposu + konut: süreyi yan kullanım (konut) belirler, başlık depoda kalır (Lojistik / Dağıtım birebir değil → genel depolama kaydı)', { esas: 'depolama', c: { depoTuru: 'lojistik', depoYer: 'bagimsiz', depoTehlike: 'dusuk', depoDayanak: 'belge', depoBelge: 'YP-2026/041', digerVar: 'evet', diger_1: 'konut', d_konutTuru: 'apartman', d_konutAltTuru: 'a3', digerDaha_1: 'hayir', yukseklik: 'ge_51_50' } }, (g, x) => {
+gercek('Lojistik deposu + konut: süreyi yan kullanım (konut) belirler, başlık depoda kalır (Lojistik / Dağıtım birebir değil → genel depolama kaydı)', { esas: 'depolama', c: { depoTuru: 'lojistik', depoTehlike: 'dusuk', digerVar: 'evet', diger_1: 'konut', d_konutTuru: 'apartman', d_konutAltTuru: 'a3', digerDaha_1: 'hayir', yukseklik: 'ge_51_50' } }, (g, x) => {
   assert.equal(g.primaryId, '08-X-016', 'Lojistik / Dağıtım Deposu birebir değil (08-X-003 / 004) → genel kayıt'); assert.deepEqual(g.secondaryIds, ['01-X-015'])
   assert.equal(g.building.relation, 'same_building', 'tek seçenek kaldığı için motor ilişkiyi "aynı yapı" kabul eder (soru sorulmaz)')
   assert.equal(x.periodCard.years, 4); assert.equal(x.periodCard.determiningUseId, '01-X-015')

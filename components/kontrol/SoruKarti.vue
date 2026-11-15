@@ -221,7 +221,7 @@ const digerKullanim = computed(() => {
     </form>
 
     <!-- Depolama: yangın yükü (kompartıman alanı + stok satırları) -->
-    <KontrolDepoStok v-else-if="soru.tip === 'stok'" :key="soru.id" :deger="deger" @cevap="v => emit('cevap', v)" />
+    <KontrolDepoStok v-else-if="soru.tip === 'stok'" :key="soru.id" :deger="deger" :tur="soru.depoTuru" @cevap="v => emit('cevap', v)" />
 
     <!-- Bilgi / yönlendirme -->
     <div v-else-if="soru.tip === 'bilgi'" class="alt">

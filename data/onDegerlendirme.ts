@@ -31,7 +31,6 @@ export const PERIYOT = {
   yuksekTehlike: 3 // sınır olmaksızın
 }
 export const TOPLANMA_KISI_ESIGI = 50 // BYKHY Md. 15
-export const DEPO_ALAN_ESIGI = 50 // BYKHY Md. 16/2 (m²)
 
 // ── Ortak seçenekler ──────────────────────────────────────────────────────────
 export const YUKSEKLIK: Secenek[] = [
@@ -202,9 +201,9 @@ export const EK1 = {
   B: { baslik: 'BYKHY Ek-1/B — Orta Tehlike Kullanım Alanları', ornekler: ['Cam ve seramik fabrikaları', 'Kimyasallar: boyama işlemleri, sabun, mum, kibrit fabrikaları, fotoğraf laboratuvarları', 'Otomotiv, elektronik, beyaz eşya, metal levha fabrikaları', 'Gıda: mezbaha, mandıra, fırın, bisküvi, çikolata, şeker, değirmen, bira, alkol damıtma', 'Kâğıt, mukavva fabrikaları, matbaa ve cilthaneler', 'Kablo, plastik döküm, kauçuk eşya, halat fabrikaları', 'Tekstil, deri, halı, giysi, ayakkabı imalathaneleri, iplikhaneler', 'Ahşap işleri, mobilya, yonga levha fabrikaları'] },
   A: { baslik: 'BYKHY Ek-1/A — Düşük Tehlike Kullanım Alanları', ornekler: ['Düşük yangın yüküne ve düşük yanabilirliğe sahip', 'Yangına karşı direnci en az 30 dakika', 'Tek bir yangın kompartımanı 126 m²’den büyük değil (126 m² binanın toplam alanı değildir)', 'Ek-1/B veya Ek-1/C kapsamında değil'] }
 }
-// Depolama — V6 R1 (Oğuz'un paketi, 11 Kas 2026: FIRETECH_Depolama_Claude_Okan_Uygulama_Paketi_V6_R1.zip). Metinler paketteki
-// referans ekrandan (01_CALISAN_REFERANS) ve karar motorundan (02_KARAR_MOTORU) aynen. Eski tür kodları korundu (soru havuzu, ücretli
-// eşleme); "Dağıtım Deposu" lojistikle birleşti, Eşya Emanet / Ahır / Açık Saha / Oto Galerisi / Kapalı Taksi Durağı eklendi.
+// Depolama — R20 (Oğuz'un "Karar Akışı R20 · Hesaplama Açıklaması", 15 Kas 2026: Downloads\FIRETECH_Depolama_R20.html); V6 R1'in yerine.
+// Metinler ve seçenekler sayfadan aynen. R18: depolama türünün kendi faaliyeti değerlendirilir; konum, 50 m² ve yardımcı / bağımsız
+// işletme soruları sorulmaz. Eski tür kodları korundu (soru havuzu, ücretli eşleme); sıra R20'deki 16 türle aynı.
 export const DEPO_TURU: Secenek[] = [
   { deger: 'depo', etiket: 'Genel Depo / Ambar' },
   { deger: 'antrepo', etiket: 'Antrepo', grup: 'depo' },
@@ -223,119 +222,121 @@ export const DEPO_TURU: Secenek[] = [
   { deger: 'arac_muhafaza', etiket: 'Filo / Araç Stok Alanı', grup: 'otopark' },
   { deger: 'taksi', etiket: 'Kapalı Taksi Durağı', grup: 'otopark' }
 ]
-// Deponun yapıyla ilişkisi (yalnız esas kullanım; diğer kullanımda mevcut ilişki sorusu var)
-export const DEPO_YER: Secenek[] = [
-  { deger: 'bagimsiz', etiket: 'Bağımsız depo binası' },
-  { deger: 'icinde', etiket: 'Başka bir binanın içinde veya bodrumunda' },
-  { deger: 'satis', etiket: 'Aynı binadaki mağaza / satış alanına bağlı depo' },
-  { deger: 'fabrika', etiket: 'Fabrikanın / üretim binasının parçası' },
-  { deger: 'yerleske', etiket: 'Aynı yerleşkede, ayrı depo binası' },
-  { deger: 'acik', etiket: 'Tamamen açık saha; kapalı yapı yok' }
-]
-export const DEPO_ILISKI: Secenek[] = [
-  { deger: 'bagimsiz', etiket: 'Aynı yapıda bağımsız kullanım' },
-  { deger: 'yardimci', etiket: 'Yardımcı / ortak alan' },
-  { deger: 'bilmiyorum', etiket: 'Emin değilim' }
-]
-// Fiilî kullanım: Ek-1'de / Madde 17'de doğrudan karşılığı olan alt faaliyetler (paketteki DIRECT tablosu). sinif varsa tehlike sınıfı
-// sorulmaz; m17 ise mevcut Yüksek Tehlikeli Yerler akışına geçilir; ikisi de yoksa (galeri, taksi) yorum: kesin sınıf atanmaz.
-export type DepoFiili = { deger: string; etiket: string; dayanak: string; sinif?: 'orta' | 'yuksek'; m17?: boolean }
-export const DEPO_FIILI: Record<string, DepoFiili[]> = {
+export const DEPO_OTOPARK: Secenek[] = [{ deger: 'acik', etiket: 'Açık otopark' }, { deger: 'kapali', etiket: 'Kapalı otopark' }]
+// Araç türü / kullanımı (otopark, oto galerisi, filo / araç stok alanı, kapalı taksi durağı). servis: esas faaliyet servis / tamirhane → Ticaret
+export const DEPO_ARAC: Record<string, Secenek[]> = {
   otopark: [
-    { deger: 'normal', etiket: 'Normal otomobil otoparkı', sinif: 'orta', dayanak: 'BYKHY Ek-1/B; otoparklar Orta-2' },
-    { deger: 'otobus', etiket: 'Otobüs deposu', sinif: 'yuksek', dayanak: 'BYKHY Ek-1/C; otobüs depoları Yüksek-2' }
+    { deger: 'otomobil', etiket: 'Otomobil ve hafif araçlar' }, { deger: 'otobus', etiket: 'Otobüsler' },
+    { deger: 'agir', etiket: 'Kamyon / ağır taşıt' }, { deger: 'diger', etiket: 'Diğer veya karışık araçlar' }
+  ],
+  galeri: [
+    { deger: 'sergi', etiket: 'Otomobil sergileme ve satış' }, { deger: 'park', etiket: 'Araç muhafazası / park' },
+    { deger: 'servis', etiket: 'Esas faaliyet servis veya tamirhane' }
   ],
   arac_muhafaza: [
-    { deger: 'normal', etiket: 'Normal otomobil park alanı', sinif: 'orta', dayanak: 'BYKHY Ek-1/B; normal otopark' },
-    { deger: 'otobus', etiket: 'Otobüs deposu', sinif: 'yuksek', dayanak: 'BYKHY Ek-1/C; otobüs depoları Yüksek-2' },
-    { deger: 'kamyon', etiket: 'Ek-1/C kapsamındaki kamyon/vagon deposu', sinif: 'yuksek', dayanak: 'BYKHY Ek-1/C; ilgili araç deposu' }
+    { deger: 'otomobil', etiket: 'Otomobil / hafif araç filosu' }, { deger: 'otobus', etiket: 'Otobüs filosu' },
+    { deger: 'agir', etiket: 'Kamyon / ağır taşıt filosu' }, { deger: 'demiryolu', etiket: 'Demiryolu aracı' },
+    { deger: 'diger', etiket: 'Karma / özel araç filosu' }
   ],
-  tank: [
-    { deger: 'lpg', etiket: 'LPG/parlayıcı gazın esas depolandığı tesis', m17: true, dayanak: 'BYKHY Madde 17/1-a' },
-    { deger: 'akaryakit', etiket: 'Akaryakıt/yanıcı sıvının esas depolandığı tesis', m17: true, dayanak: 'BYKHY Madde 17/1-c' },
-    { deger: 'patlayici', etiket: 'Patlayıcı maddenin esas depolandığı tesis', m17: true, dayanak: 'BYKHY Madde 17/1-b' }
-  ],
-  galeri: [{ deger: 'sergi', etiket: 'Yalnız otomobil sergileme/satış', dayanak: 'BYKHY Madde 16/1-b + Ek-1/B otopark bağı' }],
-  taksi: [{ deger: 'bekletme', etiket: 'Yalnız taksi bekletme', dayanak: 'BYKHY Madde 16/1-b + Ek-1/B otopark bağı' }]
+  taksi: [{ deger: 'taksi', etiket: 'Taksilerin kapalı alanda beklemesi' }, { deger: 'servis', etiket: 'Esas faaliyet servis veya tamirhane' }]
 }
-export const DEPO_FIILI_YOK: Secenek = { deger: 'yok', etiket: 'Bunların hiçbiri / Başka kullanım' }
+// Araç deposunun niteliği (demiryolu aracında "normal" seçeneği yok)
+export const DEPO_ARAC_NITELIK: Secenek[] = [
+  { deger: 'ozel', etiket: 'Ek-1/C’deki özel araç deposu niteliğinde' },
+  { deger: 'normal', etiket: 'Normal araç parkı / otopark' },
+  { deger: 'bilmiyorum', etiket: 'Emin değilim' }
+]
+export const DEPO_TANK: Secenek[] = [
+  { deger: 'gaz', etiket: 'LPG / parlayıcı gaz' }, { deger: 'sivi', etiket: 'Akaryakıt / yanıcı sıvı' },
+  { deger: 'patlayici', etiket: 'Patlayıcı maddeler' }, { deger: 'yanmaz', etiket: 'Yanıcı olmayan sıvı veya malzeme' },
+  { deger: 'diger', etiket: 'Diğer tank içeriği' }, { deger: 'bilmiyorum', etiket: 'Bilmiyorum' }
+]
+export const DEPO_TANK_M17 = ['gaz', 'sivi', 'patlayici'] // Madde 17 esas tank depolama faaliyeti → Yüksek Tehlikeli Yerler
 export const DEPO_TEHLIKE: Secenek[] = [
-  { deger: 'dusuk', etiket: 'Düşük Tehlike' },
-  { deger: 'orta', etiket: 'Orta Tehlike' },
-  { deger: 'yuksek', etiket: 'Yüksek Tehlike' },
-  { deger: 'bilmiyorum', etiket: 'Bilmiyorum, yangın yükü hesabıyla yardımcı olun' }
+  { deger: 'dusuk', etiket: 'Düşük tehlike' },
+  { deger: 'orta', etiket: 'Orta tehlike' },
+  { deger: 'yuksek', etiket: 'Yüksek tehlike' },
+  { deger: 'bilmiyorum', etiket: 'Tehlike sınıfımı bilmiyorum' }
 ]
-export const DEPO_DAYANAK: Secenek[] = [
-  { deger: 'belge', etiket: 'Yangın projesi / teknik rapor' },
-  { deger: 'beyan', etiket: 'Yalnız beyanım / emin değilim' }
+// Malzeme hesabı: alan ve miktar aralıkları (orta: hesapta kullanılan değer, m² / kg)
+export const DEPO_ALAN_BANT: { deger: string; etiket: string; orta: number }[] = [
+  { deger: 'a0', etiket: '50 m²’den küçük', orta: 35 }, { deger: 'a1', etiket: '50–99 m²', orta: 75 },
+  { deger: 'a2', etiket: '100–249 m²', orta: 175 }, { deger: 'a3', etiket: '250–499 m²', orta: 375 },
+  { deger: 'a4', etiket: '500–999 m²', orta: 750 }, { deger: 'a5', etiket: '1.000–2.499 m²', orta: 1750 },
+  { deger: 'a6', etiket: '2.500 m² ve üzeri', orta: 3750 }
 ]
-export const DEPO_R30: Secenek[] = [
-  { deger: 'evet', etiket: 'Evet — proje / teknik bilgi var' },
-  { deger: 'hayir', etiket: 'Hayır' },
-  { deger: 'bilmiyorum', etiket: 'Bilmiyorum' }
+export const DEPO_MIKTAR: { deger: string; etiket: string; orta: number }[] = [
+  { deger: 'q0', etiket: '100 kg’dan az', orta: 50 }, { deger: 'q1', etiket: '100–499 kg', orta: 300 },
+  { deger: 'q2', etiket: '500 kg – 1,9 ton', orta: 1250 }, { deger: 'q3', etiket: '2–4,9 ton', orta: 3500 },
+  { deger: 'q4', etiket: '5–19,9 ton', orta: 12500 }, { deger: 'q5', etiket: '20–49,9 ton', orta: 35000 },
+  { deger: 'q6', etiket: '50–199 ton', orta: 125000 }, { deger: 'q7', etiket: '200 ton ve üzeri', orta: 300000 }
 ]
-export const DEPO_KUCUK_KOMPARTIMAN = 126 // BYKHY Ek-1/A: düşük tehlike için tek kompartıman en fazla 126 m²
-// Yangın yükü: alt ısıl değerler (h, MJ/kg) EN 1991-1-2 Ek E (paketteki E3 kaynağı). Mevzuatta MJ/m² sınıf eşiği yok; hesap sınıf vermez.
+// Alt ısıl değerler (h, MJ/kg) EN 1991-1-2 Ek E (paketteki E3 kaynağı); ad: R20 seçim listesindeki ad.
 export const DEPO_MALZEME: { id: string; ad: string; h: number }[] = [
-  { id: 'FT-001', ad: 'Ahşap (masif)', h: 17.5 }, { id: 'FT-002', ad: 'Kağıt', h: 20 }, { id: 'FT-003', ad: 'Karton', h: 20 },
-  { id: 'FT-004', ad: 'Pamuk', h: 20 }, { id: 'FT-005', ad: 'İpek', h: 20 }, { id: 'FT-006', ad: 'Yün', h: 20 },
-  { id: 'FT-007', ad: 'Saman', h: 20 }, { id: 'FT-008', ad: 'Odun kömürü', h: 30 }, { id: 'FT-009', ad: 'Taş kömürü', h: 30 },
+  { id: 'FT-001', ad: 'Ahşap', h: 17.5 }, { id: 'FT-002', ad: 'Kağıt / belge', h: 20 }, { id: 'FT-003', ad: 'Karton / mukavva', h: 20 },
+  { id: 'FT-004', ad: 'Pamuk / pamuklu ürün', h: 20 }, { id: 'FT-005', ad: 'İpek', h: 20 }, { id: 'FT-006', ad: 'Yün', h: 20 },
+  { id: 'FT-007', ad: 'Saman / kuru ot', h: 20 }, { id: 'FT-008', ad: 'Odun kömürü', h: 30 }, { id: 'FT-009', ad: 'Taş kömürü', h: 30 },
   { id: 'FT-010', ad: 'Polietilen (PE)', h: 40 }, { id: 'FT-011', ad: 'Polipropilen (PP)', h: 40 }, { id: 'FT-012', ad: 'Polistiren (PS)', h: 40 },
   { id: 'FT-013', ad: 'ABS plastik', h: 35 }, { id: 'FT-014', ad: 'Polyester reçine', h: 30 }, { id: 'FT-015', ad: 'Poliüretan (PUR)', h: 25 },
   { id: 'FT-016', ad: 'Poliizosiyanürat (PIR)', h: 25 }, { id: 'FT-017', ad: 'PVC plastik', h: 20 }, { id: 'FT-018', ad: 'Bitüm', h: 40 },
   { id: 'FT-019', ad: 'Asfalt', h: 40 }, { id: 'FT-020', ad: 'Deri', h: 20 }, { id: 'FT-021', ad: 'Linolyum', h: 20 },
-  { id: 'FT-022', ad: 'Araç lastiği', h: 30 }, { id: 'FT-023', ad: 'Giysi (karma)', h: 20 }, { id: 'FT-024', ad: 'Mantar (cork)', h: 20 },
+  { id: 'FT-022', ad: 'Kauçuk / araç lastiği', h: 30 }, { id: 'FT-023', ad: 'Tekstil / giyim', h: 20 }, { id: 'FT-024', ad: 'Mantar (cork)', h: 20 },
   { id: 'FT-025', ad: 'Benzin', h: 45 }, { id: 'FT-026', ad: 'Motorin', h: 45 }, { id: 'FT-027', ad: 'Propan', h: 50 },
   { id: 'FT-028', ad: 'Metan', h: 50 }, { id: 'FT-029', ad: 'Etil alkol (etanol)', h: 30 }
 ]
-export const DEPO_BIRIM: Secenek[] = [{ deger: 'kg', etiket: 'kg' }, { deger: 'koli', etiket: 'Koli' }, { deger: 'palet', etiket: 'Palet' }, { deger: 'adet', etiket: 'Adet' }]
-// Varsayımsal örnek (40 palet karton): 263.580 MJ / 500 m² = 527,16 MJ/m². Gerçek stok kaydı değildir; ornek etiketi korunur.
-export const DEPO_ORNEK_STOK = {
-  alan: 500, ornek: true,
-  kalemler: [
-    { id: 'FT-003', miktar: 11520, birim: 'kg' }, { id: 'FT-003', miktar: 720, birim: 'kg' },
-    { id: 'FT-001', miktar: 1000, birim: 'kg' }, { id: 'FT-010', miktar: 32, birim: 'kg' }
-  ]
+// Yanıcı sıvı / gaz: seçim listesinde yok (Madde 17 yönlendirmesi)
+export const DEPO_TEHLIKELI_MALZEME = ['FT-025', 'FT-026', 'FT-027', 'FT-028', 'FT-029']
+// Türe göre seçilebilen malzemeler (R20 MATS_ALLOWED); listede olmayan türlerde tehlikeli olmayan bütün malzemeler
+export const DEPO_MALZEME_IZINLI: Record<string, string[]> = {
+  soguk_hava: ['FT-003', 'FT-010', 'FT-011', 'FT-012', 'FT-015', 'FT-016', 'FT-017', 'FT-001'],
+  silo: ['FT-004', 'FT-007', 'FT-001', 'FT-003', 'FT-009', 'FT-010'],
+  tank: ['FT-010', 'FT-011', 'FT-012', 'FT-015', 'FT-016', 'FT-017'],
+  arsiv: ['FT-002', 'FT-003', 'FT-001', 'FT-010', 'FT-017'],
+  emanet: ['FT-001', 'FT-003', 'FT-004', 'FT-010', 'FT-011', 'FT-012', 'FT-017', 'FT-020', 'FT-022', 'FT-023'],
+  ahir: ['FT-007', 'FT-001', 'FT-003', 'FT-010', 'FT-023'],
+  acik_saha: ['FT-001', 'FT-002', 'FT-003', 'FT-004', 'FT-007', 'FT-010', 'FT-011', 'FT-012', 'FT-017', 'FT-022', 'FT-023']
+}
+export const DEPO_MALZEME_VARSAYILAN: Record<string, string> = { arsiv: 'FT-002', ahir: 'FT-007' } // ilk satırda seçili gelir
+// Hesapta kullanılan deney eşleşmeleri (FSRI; R20'de yalnız PP ve PVC kullanılır): tt tutuşma süresi (s), phrr tepe ısı salımı (kW/m²)
+export const DEPO_DENEY: Record<string, { tt: number; phrr: number }> = {
+  'FT-011': { tt: 33.666666666666664, phrr: 2562.5666666666666 },
+  'FT-017': { tt: 46, phrr: 227.92666666666665 }
 }
 export const DEPO_METIN = {
-  turBaslik: 'Deponuz veya muhafaza alanınız hangisidir?',
-  yerBaslik: 'Depo hangi yapının içinde bulunuyor?',
-  yerAciklama: 'Madde 16/2 kapsamındaki 50 m² kuralı yalnız başka binanın içindeki depo bölümünde uygulanır. Deponun bağımsız binada olması veya aynı yerleşkede ayrı olması farklı ilişkilerdir.',
-  icAlanBaslik: 'Depolama bölümünün alanı (m²)',
-  icAlanAciklama: '50 m² altındaysa Madde 16/2 kapsamında esas binanın kullanımına yönlendirilir.',
-  iliskiBaslik: 'Depo, esas binanın yardımcı alanı mı?',
-  iliskiAciklama: '50 m² ve üstü otomatik bağımsız bina değildir.',
-  kucukDepo: 'BYKHY Madde 16/2: Başka bir binanın içinde bulunan 50 m² altı depolama bölümünde esas bina kullanımı belirleyicidir.',
-  yardimciDepo: 'Depo esas binanın yardımcı/ortak kullanım bölümü olarak belirtilmiştir.',
-  icAlanYok: 'Başka binanın içindeki depo bölümünün alanı bilinmiyor.',
-  iliskiYok: '50 m² ve üstündeki bölümün esas binaya bağlılığı veya bağımsız kullanımı belirlenmelidir.',
-  satis: 'BYKHY Madde 13/2 kapsamında satışa bağlı depolama: mevcut ticari kullanım hesabı açılır.',
-  fabrika: 'Üretim tesisinin parçası olan depo için mevcut endüstriyel kullanım hesabı açılır.',
-  acikSaha: 'Tamamen açık stok sahasının YGU taslağı Madde 23/1 kapsamındaki yapı niteliği ve kullanım belgesi ayrıca belirlenmelidir.',
-  fiiliBaslik: 'Fiilen hangi kullanım gerçekleşiyor?',
-  fiiliAciklama: 'İlgili gerçek faaliyet aşağıdakilerden biri mi?',
-  tehlikeBaslik: 'Yangın tehlike sınıfınızı biliyor musunuz?',
-  tehlikeAciklama: 'Belge dayanağı olmayan sınıf beyanı kesin periyoda çevrilmez.',
-  dayanakBaslik: 'Bu bilginin dayanağı',
-  belgeBaslik: 'Belge adı, tarih veya referans numarası',
-  belgeAciklama: 'Belge dosyası otomatik doğrulanmaz; kaynak beyanı görünür kalır.',
-  belgeOrnek: 'Örn. YP-2026/041',
-  beyan: 'Belge kaynağı olmadan yalnız beyan kesin kabul edilmez.',
-  stokBaslik: 'Yangın yükünü stok bilgilerinden hesaplayalım',
-  stokAciklama: 'Depo tehlike sınıfını bilmediğinizi zaten belirttiniz. Ürün ve ambalaj bilgilerini bir kez gireceksiniz; sistem aynı yangın yükünü veya yanabilirliği size yeniden doğrulatmayacak.',
-  r30Baslik: 'Bu yangın kompartımanının yangına dayanımı en az 30 dakika mı?',
-  r30Aciklama: 'Yalnız 126 m² veya daha küçük kompartımanlarda düşük tehlike koşulunu tamamlamak için sorulur. Bu cevap tek başına düşük tehlikeyi doğrulamaz.',
-  // Sonuç gerekçeleri (paketteki evaluate())
-  buyukKompartiman: 'Kompartıman alanı 126 m² sınırını aştığı için Madde 19 düşük tehlike koşulu sağlanmıyor.',
-  yukVar: 'Yangın yükü hesaplandı.',
-  yukYok: 'Yangın yükü için stok veya miktar verisi eksik.',
-  ortaYuksek: 'Orta-yüksek için BYKHY genel sayısal MJ/m² sınırı vermiyor.',
-  r30Yok: '30 dakika yangına dayanım koşulu sağlanmadığı için düşük tehlike elendi. Orta-yüksek ayrımı için doğrudan sınıf dayanağı bulunmuyor.',
-  alanYok: 'Öncelikle değerlendirilen yangın kompartımanının alanını girin. Malzeme kayıtları mevcutsa hesaplanan enerji korunur.',
-  r30Bilinmiyor: 'Kompartıman alanı 126 m² veya daha küçük. Düşük tehlike dalı için 30 dakika dayanım bilgisi eksik; ayrıca düşük yangın yükü ve yanabilirlik teknik olarak belirlenmiş değil.',
-  yukEksik: 'Kompartıman alanı ve 30 dakika dayanım bilgisi mevcut. Ancak stok, ambalaj veya referans ısıl değerlerden en az biri eksik; düşük yangın yükü ve yanabilirlik hakkında sonuç üretilemez.',
-  dusukKismi: 'Kompartıman alanı ≤126 m² ve 30 dakika dayanım beyanı var. Yangın yükü MJ/m² olarak hesaplandı; fakat BYKHY düşük yangın yükü ve düşük yanabilirlik için tüm depolara uygulanacak sayısal sınır vermiyor. Bu nedenle 5 yıl otomatik onaylanmaz.',
-  yorum: 'Bu kullanımda kesin sınıf atanmamıştır. Kendi sınıf bilginize ve yangın yüküne geçilir.'
+  turBaslik: 'Depolama türünü seçin',
+  turAciklama: 'Seçtiğiniz depolama faaliyetinin kendi soruları açılır.',
+  otoparkBaslik: 'Otopark açık mı, kapalı mı?',
+  otoparkAciklama: 'Açık veya kapalı olma bilgisi ücretsiz değerlendirmede kaydedilir; ücretli analize aktarılır.',
+  aracBaslik: 'Araç türünü / kullanımını seçin',
+  aracAciklama: 'Faaliyete ait mevcut araç sınıflandırma soruları kullanılır.',
+  nitelikBaslik: 'Araç deposunun niteliği',
+  nitelikAciklama: 'Mevcut normal / özel araç deposu ayrımı.',
+  tankBaslik: 'Tanklarda ne depolanıyor?',
+  tankAciklama: 'Tank içeriğine göre mevcut kullanım değerlendirmesi uygulanır.',
+  tehlikeBaslik: 'Yangın tehlike sınıfınızı seçin',
+  tehlikeAciklama: 'Bilinen sınıf arka planda kaydedilir; ara sonuç gösterilmez.',
+  stokBaslik: 'Depolanan malzemeleri seçin',
+  stokAciklama: 'Onaylı mevcut hesap motoru kullanılır.',
+  stokIpucu: 'Tehlike sınıfınızı bilmiyorsanız depolanan malzemeleri ve yaklaşık miktar aralıklarını seçin. Hesaplar arka planda yapılır.',
+  // Hesap uyarıları (estimate)
+  alanSec: 'Depolama alanının büyüklük aralığını seçin.',
+  malzemeSec: 'En az bir malzeme seçin.',
+  satirEksik: 'Her malzeme için tür ve miktar aralığı seçin.',
+  // Sonuç gerekçeleri
+  tehlikeSecildi: 'Seçilen yangın tehlike sınıfı.',
+  malzemeHesabi: 'Malzeme/miktar aralıklarıyla yapılan teknik ön sınıflandırmaya göre.',
+  otoparkNormal: 'Normal otomobil otoparkı · BYKHY Ek-1/B mevcut kaynak eşleştirmesi.',
+  filoNormal: 'Normal otomobil parkı karşılığı (mevcut kaynak kaydı).',
+  ozelArac: 'Ek-1/C özel araç deposu mevcut kaynak karşılığı.',
+  normalArac: 'Normal araç otoparkı mevcut kaynak karşılığı.',
+  aracDogrulanamadi: 'Araç kullanımının mevcut Ek-1 karşılığı doğrulanamadı.',
+  galeri: 'Oto galerisi için mevcut referans kayıtlarında kesin süre eşleştirmesi yok.',
+  taksi: 'Kapalı taksi durağı için mevcut referans kayıtlarında kesin süre eşleştirmesi yok.',
+  servis: 'Esas faaliyet servis/tamirhane; mevcut ana kullanım akışında değerlendirilecek.',
+  tankM17: 'Madde 17 kapsamındaki esas tank depolama faaliyeti; mevcut Yüksek Tehlikeli Yerler akışında doğrulanır.',
+  // R20: süreyi malzeme hesabı belirlediyse sonuç kartının altında
+  hesapNotuBaslik: 'Hesaplama hakkında',
+  hesapNotu: 'Bu süre, beyan ettiğiniz malzeme türleri ve miktarları ile teknik kaynaklardan alınan referans değerler esas alınarak yapılan ön değerlendirme sonucudur. Gerçek depolama koşulları ve doğrulanmış teknik veriler doğrultusunda değişiklik gösterebilir.'
 }
 // Yüksek tehlikeli yerler: kart metnindeki maddelerin hepsi (Düzeltme 05)
 export const YH_FAALIYET: Secenek[] = [

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Sonuç (YGU Rehberi "BinaSonuc" düzeni, FireTech dili): bina periyodu, belirleyen bilgi, kullanım tablosu,
 // nasıl karar verildi, detaylı analiz ön izlemesi ve uyarı. Metinler data/onDegerlendirme.ts'de.
-import { METIN, SINIFLAR } from '~/data/onDegerlendirme'
+import { METIN, SINIFLAR, DEPO_METIN } from '~/data/onDegerlendirme'
 import type { Sonuc, KullanimSonucu, Cevaplar } from '~/utils/onDegerlendirmeMotoru'
 
 const props = defineProps<{ sonuc: Sonuc; c: Cevaplar }>()
@@ -47,6 +47,8 @@ const soruIkonu = (q: { metin: string; konu: string }) => KONU_IKON[q.konu] ?? b
           <span class="b-baslik">Süreyi belirleyen</span>
           <ul><li v-for="k in sonuc.surucu" :key="k.anahtar"><strong>{{ k.sinif ? SINIFLAR[k.sinif].kisa : k.ad }}:</strong> {{ k.belirleyici }}</li></ul>
         </div>
+        <!-- R20: süreyi depolama malzeme hesabı belirlediyse; başka kullanım daha kısa süre veriyorsa gösterilmez -->
+        <p v-if="sonuc.genel === 'tabi' && sonuc.surucu.some(k => k.tahmini)" class="hesap-notu" role="note"><strong>{{ DEPO_METIN.hesapNotuBaslik }}</strong>{{ DEPO_METIN.hesapNotu }}</p>
         <p v-else-if="sonuc.genel === 'tanimsiz'" class="belirleyen">{{ METIN.tanimsizKonut }}</p>
         <ul v-else class="eksikler">
           <li v-for="k in belirsizler" :key="k.anahtar"><strong>{{ k.sinif ? SINIFLAR[k.sinif].kisa : k.ad }}:</strong> {{ k.belirleyici }}</li>
@@ -121,6 +123,8 @@ const soruIkonu = (q: { metin: string; konu: string }) => KONU_IKON[q.konu] ?? b
 .belirleyen ul { margin: 4px 0 0; padding-left: 18px; font-size: 15px; }
 .eksikler { margin: 10px 0 0; padding-left: 20px; }
 .duzenle { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.hesap-notu { margin: 12px 0 0; padding: 12px 14px; border-radius: 8px; background: var(--paper); border-left: 3px solid var(--gold); font-size: 14.5px; color: var(--ink); }
+.hesap-notu strong { display: block; margin-bottom: 4px; font-family: var(--font-head); color: var(--navy); }
 .blok { margin-top: 8px; font-size: 14px; color: var(--muted); }
 .periyot { display: flex; flex-direction: column; align-items: center; padding: 18px 28px; border-radius: 10px; background: var(--navy); color: #fff; }
 .periyot small { font-family: var(--font-head); font-weight: 700; letter-spacing: .8px; color: #c9d3de; }

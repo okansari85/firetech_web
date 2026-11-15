@@ -518,8 +518,8 @@ export const DIGER_VAR_METNI: Record<SinifKod, { soru: string; hayir: string }> 
 }
 
 // Ana kullanım olarak seçildiğinde "başka kullanım" adımı olmayan sınıflar: karma kullanım hesaplanmaz, sonuç yalnız kendi periyodu.
-// Toplanma: müşteri Ekran 7 §9 "bu sürümde karma kullanım hesaplanmayacak" (kullanıcı kararı, 10 Ekim). Diğer kullanım olarak eklenen toplanma etkilenmez.
-export const KARMA_YOK: SinifKod[] = ['toplanma']
+// Toplanma 10 Ekim'de buradaydı (Ekran 7 §9); 15 Kas 2026 kullanıcı: toplanmada da "başka kullanım var mı" sorulur. Şu an boş.
+export const KARMA_YOK: SinifKod[] = []
 
 // ── Yardım pencereleri ────────────────────────────────────────────────────────
 export const YARDIM = {

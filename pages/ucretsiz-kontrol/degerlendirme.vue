@@ -20,7 +20,7 @@ const soruAlani = ref<HTMLElement | null>(null)
 
 onMounted(() => { if (!d.value.esas) navigateTo('/ucretsiz-kontrol/kullanim-sinifi') })
 
-// Karma kullanım hesaplanmayan ana kullanımda (toplanma) "Diğer kullanımlar" adımı gösterilmez.
+// Karma kullanım hesaplanmayan ana kullanımda (KARMA_YOK; şu an yok) "Diğer kullanımlar" adımı gösterilmez.
 const adimlar = computed(() => (d.value.esas && KARMA_YOK.includes(d.value.esas) ? ['Kullanım sınıfı', 'Yapı bilgileri', 'Sonuç'] : ['Kullanım sınıfı', 'Yapı bilgileri', 'Diğer kullanımlar', 'Sonuç']))
 const adim = computed(() => (tamam.value ? adimlar.value.length - 1 : mevcut.value?.grup === 'diger' ? 2 : 1))
 
